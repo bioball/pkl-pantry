@@ -14,6 +14,7 @@
 import com.diffplug.spotless.FormatterFunc
 import com.diffplug.spotless.FormatterStep
 import groovy.json.JsonSlurper
+import org.gradle.kotlin.dsl.assign
 import java.io.Serial
 import java.io.Serializable
 import java.net.URI
@@ -176,6 +177,7 @@ kotlin { jvmToolchain(21) }
 repositories { mavenCentral() }
 
 dependencies {
+  implementation(files("/Users/danielchao/code/apple/pkl/stdlib/build/libs/pkl-stdlib-0.32.0-SNAPSHOT.zip"))
   testImplementation(libs.pklCore)
   testImplementation(libs.pklParser)
   testImplementation(libs.junitEngine)

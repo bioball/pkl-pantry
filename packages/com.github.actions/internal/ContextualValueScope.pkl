@@ -1,0 +1,190 @@
+open module com.github.actions.ContextualValueScope
+
+import "pkl:ref"
+
+import "../Workflow.pkl"
+import "Context.pkl"
+
+class GitHubDomain extends ref.Domain {
+  hidden functionCall: FunctionCall?
+
+  function renderNormalAccess(reference: ref.Reference<GitHubDomain, Any>) =
+    reference.getPath().map((it) -> it.property ?? it.key).join(".")
+
+  function renderReference(reference: ref.Reference<GitHubDomain, Any>) =
+    if (reference.getDomain().functionCall != null)
+      "${{ \(reference.getDomain().functionCall.render()) }}"
+    else
+      "${{ \(renderNormalAccess(reference)) }}"
+}
+
+typealias GitHubRef<T> = ref.Reference<GitHubDomain, T>
+typealias Value<T> = *T | GitHubRef<T>
+
+/// Information about the workflow run.
+hidden const $github: GitHubRef<Context.GitHub> = $.github
+
+/// Information about the currently running job.
+hidden const $job: GitHubRef<Context.Job> = $.job
+
+/// For reusable workflows only, contains outputs of jobs from the reusable workflow.
+hidden const $jobs: GitHubRef<Mapping<String, Context.JobOutput>> = $.jobs
+
+/// Information about the steps that have been run in the current job.
+hidden const $steps: GitHubRef<Mapping<String, Context.Step>> = $.steps
+
+/// Information about the runner that is running the current job.
+hidden const $runner: GitHubRef<Context.Runner> = $.runner
+
+/// Information about the matrix execution strategy for the current job.
+hidden const $strategy: GitHubRef<Context.Strategy> = $.strategy
+
+/// For workflows with a matrix, the matrix context contains the matrix properties defined in the workflow file that
+/// apply to the current job.
+///
+/// For example, if you configure a matrix with the os and node keys, the matrix context object includes the os and
+/// node properties with the values that are being used for the current job.
+///
+/// There are no standard properties in the matrix context, only those which are defined in the workflow file.
+hidden const $matrix: GitHubRef<Mapping<String, String>> = $.matrix
+
+/// Contains the outputs of all jobs that are defined as a dependency of the current job.
+hidden const $needs: GitHubRef<Mapping<String, Context.Need>> = $.needs
+
+/// Contains variables that have been set in a workflow, job, or step.
+///
+/// It does not contain variables inherited by the runner process.
+/// For more information about setting variables in your workflow, see
+/// [Workflow syntax for GitHub Actions](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idsteps).
+hidden const $env: GitHubRef<Mapping<String, String>> = $.env
+
+/// The secrets context contains the names and values of secrets that are available to a workflow run.
+///
+/// The secrets context is not available for composite actions due to security reasons.
+/// If you want to pass a secret to a composite action, you need to do it explicitly as an input.
+/// For more information about secrets, see Using secrets in GitHub Actions.
+///
+/// `GITHUB_TOKEN` is a secret that is automatically created for every workflow run, and is always included in the
+/// `secrets` context.
+///
+/// For more information, see
+/// [Use GITHUB_TOKEN for authentication in workflows](https://docs.github.com/en/actions/tutorials/authenticate-with-github_token).
+hidden const $secrets: GitHubRef<Mapping<String, String>> = $.secrets
+
+/// The inputs context contains input properties passed to an action, to a reusable workflow, or to a manually triggered
+/// workflow.
+///
+/// For reusable workflows, the input names and types are defined in the workflow_call event configuration of a reusable
+/// workflow, and the input values are passed from `jobs.<job_id>.with` in an external workflow that calls the reusable
+/// workflow.
+///
+/// For manually triggered workflows, the inputs are defined in the `workflow_dispatch` event configuration of a
+/// workflow.
+hidden const $inputs: GitHubRef<Mapping<String, String | Number | Boolean>> = $.inputs
+
+local domain = new Workflow.GitHubDomain {}
+
+/// Returns a single hash for the set of files that matches the [path] pattern.
+///
+/// You can provide a single path pattern or multiple path patterns separated by commas.
+/// The path is relative to the `GITHUB_WORKSPACE` directory and can only include files inside of the
+/// `GITHUB_WORKSPACE`.
+/// This function calculates an individual SHA-256 hash for each matched file, and then uses those hashes to calculate
+/// a final SHA-256 hash for the set of files. If the path pattern does not match any files, this returns an empty
+/// string.
+/// For more information about SHA-256, see SHA-2.
+///
+/// You can use pattern matching characters to match file names. Pattern matching for hashFiles follows glob pattern matching and is case-insensitive on Windows. For more information about supported pattern matching characters, see the Patterns section in the @actions/glob documentation.
+function $hashFiles(path: Value<String>): GitHubRef<String> =
+  ref.Reference(domain, String, new FunctionCall {
+    name = "hashFiles"
+    inputs = List(path)
+  })
+
+/// Returns `true` if [search] contains [item].
+///
+/// If search is an array, this function returns true if the item is an element in the array.
+/// If search is a string, this function returns true if the item is a substring of search.
+/// This function is not case sensitive.
+/// Casts values to a string.
+///
+/// ```
+/// contains(github.event.issue.labels["*"].name, 'bug')
+/// ```
+function $contains(
+  search: Value<String | Listing<String>>,
+  item: Value<String>
+): GitHubRef<Boolean> =
+  ref.Reference(domain, Boolean, new FunctionCall {
+    name = "contains"
+    inputs = List(search, item)
+  })
+
+/// Returns a JSON object or JSON data type for value.
+///
+/// You can use this function to provide a JSON object as an evaluated expression or to convert any data type that can
+/// be represented in JSON or JavaScript, such as strings, booleans, null values, arrays, and objects.
+function $fromJSON(value: Value<String>): GitHubRef<unknown> =
+  ref
+    .Reference(domain, TypesHolder, new FunctionCall {
+      name = "fromJSON"
+      inputs = List(value)
+    })
+    .`unknown`
+
+local class TypesHolder {
+  `unknown`: unknown
+}
+
+local const $: GitHubRef<Context> =
+  ref.Reference(new Workflow.GitHubDomain {}, Context.getClass(), null)
+
+local const function renderUnbracketed(ref: GitHubRef<Any>) =
+  let (data = ref.getData())
+    if (data is FunctionCall)
+      data.render()
+    else
+      ref.getDomain().renderNormalAccess(ref)
+
+class GitHubExpressionValueRenderer extends ValueRenderer {
+  local jsonRenderer = new JsonRenderer {}
+
+  function renderValue(value: Any) =
+    if (!(value is Boolean | Null | Number | String))
+      throw("Cannot render type \(value.getClass())")
+    else if (value is String)
+      "'" + value.replaceAll("'", "''") + "'"
+    else
+      jsonRenderer.renderValue(value)
+
+  function renderDocument(value: Any) = renderValue(value)
+}
+
+local const githubExpressionValueRenderer = new GitHubExpressionValueRenderer {}
+
+class FunctionCall {
+  name: String
+
+  inputs: List<Value<Any>>
+
+  function renderPklValue(value: Any) =
+    if (!(value is Boolean | Null | Number | String))
+      throw("Cannot render type \(value.getClass())")
+    else if (value is String)
+      "'" + value.replaceAll("'", "''") + "'"
+    else
+      new JsonRenderer {}.renderValue(value)
+
+  function render() =
+    new Listing {
+      name
+      "("
+      for (input in inputs) {
+        if (input is GitHubRef)
+          renderUnbracketed(input)
+        else
+          githubExpressionValueRenderer.renderValue(input)
+      }
+      ")"
+    }.join("")
+}

@@ -73,7 +73,7 @@ jobs {
         with {
           path = "wiki/README.md"
           key =
-            "wiki-readme-\(module.context.runner.os)-${{ hashFiles('wiki/generateWikiToc.go') }}"
+            "wiki-readme-\(module.$runner.os)-\(module.$hashFiles("wiki/generateWikiToc.go"))"
         }
       }
       (catalog.`actions/upload-pages-artifact@v3`) {

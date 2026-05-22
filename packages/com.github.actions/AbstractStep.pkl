@@ -68,7 +68,7 @@ id: String?
 ///
 /// For more information, see Evaluate expressions in workflows and actions.
 @SourceCode { language = "GithubExpressionLanguage" }
-`if`: String?
+`if`: Workflow.Value<String>?
 
 /// The maximum number of minutes to run the step before killing the process.
 ///

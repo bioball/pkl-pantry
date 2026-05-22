@@ -119,10 +119,14 @@
 /// For further instructions, see its
 /// [documentation](https://pkl-lang.org/package-docs/pkg.pkl-lang.org/pkl-pantry/com.github.actions.contrib/current/generate-action/index.html).
 /** gha-fork */
+@ModuleInfo { minPklVersion = "0.32.0" }
 module com.github.actions.Workflow
 
+extends "internal/ContextualValueScope.pkl"
+
+import "pkl:ref"
+
 import "AbstractTypedJob.pkl"
-import "context.pkl" as Context
 import "Job.pkl" as JobModule
 
 /// The name of the workflow.
@@ -225,9 +229,6 @@ permissions: (*Permissions | "read-all" | "write-all")?
 /// For more information, see
 /// [REST API endpoints for GitHub Actions](https://docs.github.com/en/rest/actions?apiVersion=2022-11-28#workflow-jobs).
 jobs: Jobs
-
-/// The contextual values available within a GitHub Action.
-hidden const context: Context
 
 typealias Jobs =
   Mapping<String(matches(Regex("[a-zA-Z_][a-zA-Z0-9_-]*"))), Job>(!isEmpty, hasValidJobReferences)
@@ -939,7 +940,7 @@ class On {
 // endregion
 
 // Environment Variables
-typealias EnvironmentVariables = Mapping<String, String | Boolean | Number>
+typealias EnvironmentVariables = Mapping<String, Value<String | Boolean | Number>>
 
 // Permissions
 class Permissions {
@@ -1074,5 +1075,9 @@ output {
     # Generated from Workflow.pkl. DO NOT EDIT.
     \(super.text)
     """
-  renderer = new YamlRenderer {}
+  renderer = new YamlRenderer {
+    converters {
+      [ref.Reference] = (it) -> it.toString()
+    }
+  }
 }

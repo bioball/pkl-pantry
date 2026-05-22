@@ -60,7 +60,7 @@ name: String?
 /// For more information on which contexts are supported in this key, see
 /// [Contexts reference](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability).
 @SourceCode { language = "GithubExpressionLanguage" }
-`if`: String?
+`if`: Workflow.Value<String>?
 
 /// Identify any jobs that must complete successfully before this job will run.
 ///
@@ -158,7 +158,7 @@ permissions: (*Workflow.Permissions | "read-all" | "write-all")?
 ///   `runs-on` { "self-hosted"; "${{ inputs.chosen-os }}" }
 ///   ```
 /// If you would like to run your workflow on multiple machines, use [strategy].
-`runs-on`: (MachineLabel | *Listing<MachineLabel>)?(util.isExclusive(this, uses))
+`runs-on`: (Workflow.Value<MachineLabel> | *Listing<Workflow.Value<MachineLabel>>)?(util.isExclusive(this, uses))
 
 typealias MachineLabel =
   "ubuntu-slim"
@@ -219,7 +219,7 @@ env: Workflow.EnvironmentVariables?
 /// To use job outputs in a dependent job, you can use the needs context.
 /// For more information, see
 /// [Contexts reference](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#needs-context).
-outputs: Mapping<String, String>?
+outputs: Mapping<String, Workflow.Value<String>>?
 
 /// Define the environment that the job references.
 ///
@@ -307,8 +307,10 @@ class Strategy {
   /// the property in other areas of your workflow file.
   /// For more information, see
   /// [Contexts reference](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts).
-  matrix: Mapping<String, Listing<String | *Dynamic | Object>>
+  matrix: Workflow.Value<Mapping<String, Listing<String | *Dynamic | Object>>>
+
   `fail-fast`: (Boolean | String)?
+
   `max-parallel`: (Number | String)?
 }
 
