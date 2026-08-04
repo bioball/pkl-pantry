@@ -1,0 +1,18 @@
+amends "../v2/Dependabot.pkl"
+
+updates {
+  new {
+    `package-ecosystem` = "npm"
+    directory = "/"
+    schedule {
+      interval = "weekly"
+    }
+    `pull-request-branch-name` {
+      template = "{prefix}/{package_manager}/{dependency}-{version}"
+      separator = "-"
+      `word-separator` = "-"
+      `branch-name-case` = "lowercase"
+      `max-length` = 80
+    }
+  }
+}
