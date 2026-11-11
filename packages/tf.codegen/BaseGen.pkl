@@ -1,0 +1,107 @@
+//===----------------------------------------------------------------------===//
+// Copyright © 2026 Apple Inc. and the Pkl project authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//===----------------------------------------------------------------------===//
+module tf.codegen.BaseGen
+
+import "@pkl.experimental.syntax/ExpressionNode.pkl"
+import "@pkl.experimental.syntax/ModuleNode.pkl"
+import "@pkl.experimental.syntax/TypeNode.pkl"
+
+import "ProviderSchemaGen.pkl"
+import "util.pkl"
+
+providers: Listing<ProviderSchemaGen>
+
+fixed providerImportPathsToAliases: Mapping<String, String> = new {
+  for (provider in providers) {
+    [provider.providerModuleOutputPath] =
+      util.camelCase(provider.providerName + "Provider").capitalize()
+  }
+}
+
+fixed moduleNode: ModuleNode = new {
+  declaration {
+    moduleHeader {
+      moduleExtendsOrAmendsClause {
+        type = "extends"
+        extendedModule = "@tf/tf.pkl"
+      }
+    }
+  }
+  imports {
+    new { value = "Providers.pkl" }
+    new { value = "Resources.pkl" }
+    new { value = "EphemeralResources.pkl" }
+    new { value = "Data.pkl" }
+  }
+  properties {
+    new {
+      name {
+        value = "provider"
+      }
+      docComment {
+        value = "Terraform/OpenTofu provider configuration."
+      }
+      typeAnnotation {
+        type = new TypeNode.DeclaredTypeNode {
+          name = util.className("Providers")
+        }
+      }
+    }
+    new {
+      name {
+        value = "resource"
+      }
+      docComment {
+        value = "Terraform/OpenTofu resource configuration."
+      }
+      typeAnnotation {
+        type = new TypeNode.DeclaredTypeNode {
+          name = util.className("Resources")
+        }
+      }
+    }
+    new {
+      name {
+        value = "ephemeral"
+      }
+      docComment {
+        value = "Terraform/OpenTofu ephemeral resource configuration."
+      }
+      typeAnnotation {
+        type = new TypeNode.DeclaredTypeNode {
+          name = util.className("EphemeralResources")
+        }
+      }
+    }
+    new {
+      name {
+        value = "data"
+      }
+      docComment {
+        value = "Terraform/OpenTofu data configuration."
+      }
+      typeAnnotation {
+        type = new TypeNode.DeclaredTypeNode {
+          name = util.className("Data")
+        }
+      }
+    }
+  }
+}
+
+output {
+  text = util.formatPkl(moduleNode.output.text)
+}

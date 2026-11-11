@@ -1,0 +1,334 @@
+//===----------------------------------------------------------------------===//
+// Copyright © 2026 Apple Inc. and the Pkl project authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//===----------------------------------------------------------------------===//
+module tf.codegen.ProviderSchemaGen
+
+import "@pkl.experimental.syntax/ClassNode.pkl"
+import "@pkl.experimental.syntax/ExpressionNode.pkl"
+import "@pkl.experimental.syntax/ModuleNode.pkl"
+import "@pkl.experimental.syntax/ObjectBodyNode.pkl"
+import "@pkl.experimental.syntax/TypeNode.pkl"
+
+import "DataGen.pkl"
+import "ProvidersSchema.pkl"
+import "ResourceGen.pkl"
+import "util.pkl"
+
+fqdn: String
+
+providerSchema: ProvidersSchema.ProviderSchema
+
+/// The resources to generate. If empty, generates everything.
+selectResources: List<String>
+
+fixed splitFqdn = fqdn.split("/")
+
+fixed providerName = splitFqdn.last
+
+fixed providerPrefix = splitFqdn.drop(1)
+
+fixed filePrefix = "providers/" + providerPrefix.join("/")
+
+// first segment is the registry; e.g. registry.opentofu.org/docker/docker
+fixed modulePrefix = "providers." + providerPrefix.join(".")
+
+fixed providerClass: ClassNode = new {
+  docComment {
+    when (providerSchema.provider.block.description != null) {
+      value = util.fixComment(providerSchema.provider.block.description!!)
+    } else {
+      value = "Configuration block for tf provider '\(providerName)'."
+    }
+  }
+  classHeader {
+    name { value = "Provider" }
+    extendsClause {
+      type = new TypeNode.DeclaredTypeNode {
+        name = util.className("BaseProvider")
+      }
+    }
+  }
+  properties = u.renderProperties(providerSchema.provider.block, null, true, false)
+}
+
+/// The classes of the nested objects of this module, and their names.
+local layout =
+  util.computeLayout(functionClasses + util.classes(providerSchema.provider.block, true))
+
+/// [util], with the names of the classes of this module.
+local u = (util) {
+  classNames = layout.names
+  emittedClasses = layout.emitted
+}
+
+/// The classes of the types of functions' outputs and parameters.
+local functionClasses: List<util.NestedClass> =
+  providerSchema.functions
+    .toMap()
+    .entries
+    .flatMap((entry) ->
+      util.functionTypeClasses(entry.second.return_type, outputTypeName(entry.first), true)
+        + entry.second.parameters
+          .toList()
+          .mapIndexed((idx, param) ->
+            util.functionTypeClasses(param.type, paramTypeName(entry.first, idx, param), false)
+          )
+          .flatten()
+    )
+
+/// The name that classes of a function's output type are derived from.
+///
+/// For example, the class for function `arn_parse` is `ArnParseOutput`.
+local function outputTypeName(funcName: String): String = "\(funcName)_output"
+
+/// The name that classes of a function's parameter type are derived from.
+///
+/// The class is named after the function and the parameter; for example, `ArnParseArn` for
+/// parameter `arn` of function `arn_parse`. Parameters without a name are `Param1`, `Param2`, etc.
+local function paramTypeName(
+  funcName: String,
+  idx: Int,
+  param: ProvidersSchema.FunctionParameter
+): String = "\(funcName)_\(param.name ?? "param\(idx + 1)")"
+
+local class NormalizedParam {
+  underlying: ProvidersSchema.FunctionParameter
+  name: String
+
+  /// The name that the class of this parameter's type is derived from.
+  typeName: String
+}
+
+fixed providerFunctions: Listing<ClassNode.MethodNode> = new {
+  for (funcName, func in providerSchema.functions) {
+    new {
+      local normalizedParams: Listing<NormalizedParam> = new {
+        for (idx, param in func.parameters) {
+          new {
+            name = param.name ?? "arg\(idx)"
+            underlying = param
+            typeName = paramTypeName(funcName, idx, param)
+          }
+        }
+      }
+      when (func.description != null) {
+        docComment {
+          value = util.fixComment(func.description!!)
+        }
+      }
+      modifiers { "const" }
+      name { value = funcName }
+      parameters {
+        for (param in normalizedParams) {
+          new {
+            name { value = param.name }
+            typeAnnotation {
+              type = u.getPklType(param.underlying.type, null, param.typeName, null, false)
+            }
+          }
+        }
+      }
+      local returnType =
+        let (baseType = u.getBasePklType(func.return_type, null, outputTypeName(funcName)))
+          new TypeNode.DeclaredTypeNode {
+            name = util.className("tf.Computed")
+            typeArguments {
+              baseType
+            }
+          }
+      local underlyingReturnType = util.underlyingType(returnType)
+      returnTypeAnnotation {
+        type = returnType
+      }
+      body = new ExpressionNode.QualifiedMemberAccessExpressionNode {
+        lhs = new ExpressionNode.MemberAccessExpressionNode {
+          identifier { value = "tf" }
+        }
+        rhs {
+          identifier { value = "computedFunctionCall" }
+          typeArguments {
+            underlyingReturnType
+          }
+          arguments {
+            new ExpressionNode.ObjectExpressionNode {
+              body {
+                members {
+                  new ObjectBodyNode.PropertyMemberNode {
+                    propertyName { value = "inputs" }
+                    assignment = new ExpressionNode.MemberAccessExpressionNode {
+                      identifier { value = "List" }
+                      arguments {
+                        for (param in normalizedParams) {
+                          new ExpressionNode.MemberAccessExpressionNode {
+                            identifier { value = param.name }
+                          }
+                        }
+                      }
+                    }
+                  }
+                  new ObjectBodyNode.PropertyMemberNode {
+                    propertyName { value = "provider" }
+                    assignment = new ExpressionNode.LiteralValueExpressionNode {
+                      value = providerName
+                    }
+                  }
+                  new ObjectBodyNode.PropertyMemberNode {
+                    propertyName { value = "functionName" }
+                    assignment = new ExpressionNode.LiteralValueExpressionNode { value = funcName }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+fixed providerModule: ModuleNode = new {
+  declaration {
+    moduleHeader {
+      name = util.className("\(modulePrefix).\(providerName)")
+    }
+  }
+
+  imports {
+    new { value = "@tf/tf.pkl" }
+    new { value = "@tf/Provider.pkl"; alias = "BaseProvider" }
+    // only the classes of nested objects need it
+    when (!layout.emitted.isEmpty) {
+      new { value = "@tf/Referenceable.pkl" }
+    }
+  }
+
+  methods = providerFunctions
+
+  classes {
+    providerClass
+    for (funcName, func in providerSchema.functions) {
+      // The properties of the output are plain types, because the output as a whole is computed.
+      ...u.renderObjectClasses(func.return_type, null, outputTypeName(funcName), false, true)
+      for (idx, param in func.parameters) {
+        ...u.renderObjectClasses(
+          param.type,
+          null,
+          paramTypeName(funcName, idx, param),
+          false,
+          false
+        )
+      }
+    }
+    for (attributeName, attribute in providerSchema.provider.block.attributes) {
+      when (attribute.type != null) {
+        ...u.renderObjectClasses(
+          attribute.type!!,
+          null,
+          attributeName,
+          true,
+          attribute.isReadOnly()
+        )
+      } else {
+        ...u.renderNestedTypeClasses(
+          attribute.nested_type!!,
+          null,
+          attributeName,
+          true,
+          attribute.isReadOnly()
+        )
+      }
+    }
+
+    for (nestedBlockName, nestedBlock in providerSchema.provider.block.block_types) {
+      ...u.renderBlockClasses(
+        nestedBlock,
+        null,
+        nestedBlockName,
+        true
+      )
+    }
+  }
+}
+
+fixed resources: Listing<ResourceGen> = new {
+  for (_resourceName, _resource in providerSchema.resource_schemas) {
+    when (selectResources.isEmpty || selectResources.contains(_resourceName)) {
+      new {
+        resourceName = _resourceName
+        resource = _resource
+        filePrefix = module.filePrefix
+        modulePrefix = module.modulePrefix
+        providerName = module.providerName
+        ephemeral = false
+      }
+    }
+  }
+}
+
+fixed ephemeralResources: Listing<ResourceGen> = new {
+  for (_resourceName, _resource in providerSchema.ephemeral_resource_schemas) {
+    when (selectResources.isEmpty || selectResources.contains(_resourceName)) {
+      new {
+        resourceName = _resourceName
+        resource = _resource
+        filePrefix = module.filePrefix
+        modulePrefix = module.modulePrefix
+        providerName = module.providerName
+        ephemeral = true
+      }
+    }
+  }
+}
+
+fixed data: Listing<DataGen> = new {
+  for (_dataSourceName, _dataSource in providerSchema.data_source_schemas) {
+    new {
+      dataSourceName = _dataSourceName
+      dataSchema = _dataSource
+      filePrefix = module.filePrefix
+      modulePrefix = module.modulePrefix
+      providerName = module.providerName
+    }
+  }
+}
+
+fixed providerModuleOutputPath: String = "\(filePrefix)/\(providerName).pkl"
+
+fixed resourceOutputs: Mapping<String, FileOutput> = new {
+  for (resource in resources) {
+    [resource.moduleOutputPath] = resource.output
+  }
+}
+
+fixed ephemeralResourceOutputs: Mapping<String, FileOutput> = new {
+  for (resource in ephemeralResources) {
+    [resource.moduleOutputPath] = resource.output
+  }
+}
+
+fixed dataOutputs: Mapping<String, FileOutput> = new {
+  for (d in data) {
+    [d.moduleOutputPath] = d.output
+  }
+}
+
+fixed files: Mapping<String, FileOutput> = new {
+  [providerModuleOutputPath] {
+    text = u.formatPkl(providerModule.output.text)
+  }
+  ...resourceOutputs
+  ...ephemeralResourceOutputs
+  ...dataOutputs
+}

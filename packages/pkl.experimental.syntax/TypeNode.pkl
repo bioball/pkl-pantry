@@ -24,6 +24,7 @@ import "TypeNode.pkl"
 
 class NullableTypeNode extends TypeNode {
   typeNode: TypeNode
+
   function render(currentIndent: String) =
     let (
       underlyingRendered =
@@ -37,6 +38,7 @@ class NullableTypeNode extends TypeNode {
 
 class BuiltInTypeNode extends TypeNode {
   type: "unknown" | "nothing" | "module"
+
   function render(_) = type
 }
 

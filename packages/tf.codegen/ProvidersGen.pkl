@@ -1,0 +1,84 @@
+//===----------------------------------------------------------------------===//
+// Copyright © 2026 Apple Inc. and the Pkl project authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//===----------------------------------------------------------------------===//
+/// Generates `Providers.pkl`, which defines all the providers used in the project.
+module tf.codegen.ProvidersGen
+
+import "@pkl.experimental.syntax/ModuleNode.pkl"
+import "@pkl.experimental.syntax/TypeNode.pkl"
+
+import "ProviderSchemaGen.pkl"
+import "util.pkl"
+
+providers: Listing<ProviderSchemaGen>
+
+/// The names that the provider modules are imported as, in order of [providers].
+///
+/// This is the name of the provider with `Module`; e.g. `awsModule`. If another provider has that
+/// name, it is prefixed with the organization; e.g. `hashicorpAwsModule`.
+local importAliases: List<String> =
+  providers
+    .toList()
+    .fold(Pair(List(), Set()), (acc, provider) ->
+      let (
+        name =
+          util.firstAvailable(
+            List(
+              "\(provider.providerName)Module",
+              "\(provider.providerPrefix.first)\(util.camelCase(provider.providerName))Module"
+            ),
+            acc.second
+          )
+      )
+        Pair(acc.first + List(name), acc.second.add(name))
+    )
+    .first
+
+fixed moduleNode: ModuleNode = new {
+  declaration {
+    moduleHeader {
+      name = util.className("providers.Providers")
+    }
+  }
+  imports {
+    for (idx, provider in providers) {
+      new {
+        value = provider.providerModuleOutputPath.replaceFirst("providers/", "")
+        alias = importAliases[idx]
+      }
+    }
+  }
+  properties {
+    for (idx, provider in providers) {
+      new {
+        when (provider.providerSchema.provider.block.description != null) {
+          docComment {
+            value = provider.providerSchema.provider.block.description!!.trim()
+          }
+        }
+        name { value = provider.providerName }
+        typeAnnotation {
+          type = new TypeNode.DeclaredTypeNode {
+            name = util.className("\(importAliases[idx]).Provider")
+          }
+        }
+      }
+    }
+  }
+}
+
+fixed moduleOutputPath: String = "providers/Providers.pkl"
+
+output = moduleNode.output

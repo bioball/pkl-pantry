@@ -1,0 +1,534 @@
+//===----------------------------------------------------------------------===//
+// Copyright © 2026 Apple Inc. and the Pkl project authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//===----------------------------------------------------------------------===//
+/// Core module containing Terraform/OpenTofu types.
+abstract module tf.tf
+
+import "pkl:ref"
+
+import "DataSource.pkl" as DataSourceModule
+import "Referenceable.pkl"
+import "Resource.pkl" as ResourceModule
+import "utils.pkl"
+
+/// Terraform/OpenTofu related configuration.
+///
+/// See [documentation](https://www.terraform.io/docs/language/settings/index.html).
+terraform: Configuration
+
+/// Terraform/OpenTofu variable definitions.
+///
+/// NOTE: in general, there's no need to use vars when using Pkl.
+/// Instead, these can be defined as regular properties, and inputs can be handled via `read()`.
+variable: Mapping<Identifier, Variable>
+
+/// Terraform/OpenTofu provider configuration.
+provider: Typed
+
+/// Terraform/OpenTofu resource configuration.
+resource: Typed
+
+/// Terraform/OpenTofu ephemeral resource configuration.
+ephemeral: Typed
+
+/// Terraform/OpenTofu data configuration.
+data: Typed
+
+/// Terraform/OpenTofu output values definition.
+///
+/// See [documentation](https://www.terraform.io/docs/language/values/outputs.html).
+@RenameProperty { to = "output" }
+outputs: Mapping<Identifier, OutputEntry>
+
+/// An input variable.
+typealias InputVariable<T> = ref.Reference<StaticValue, T>
+
+/// A value to be computed by a provider during the creation of a resource.
+typealias Computed<T> = ref.Reference<ComputedResourceValue, T>
+
+/// An input value when configuring a provider.
+///
+/// Can either be [T], or an input variable.
+///
+/// Note: a provider cannot be configured with a computed property.
+typealias ProviderInput<T> = *T | InputVariable<T>
+
+/// An input value to pass to a resource.
+///
+/// Can either be [T], an input variable, or a computed reference.
+typealias Input<T> = *T | InputVariable<T> | Computed<T>
+
+typealias IgnoreChanges = *Listing<String>(isDistinct) | "all"
+
+class Lifecycle {
+  /// New replacement object is created first, and the prior object is destroyed after the replacement is created.
+  create_before_destroy: Boolean
+
+  /// Measure of safety against the accidental replacement of resources.
+  prevent_destroy: Boolean
+
+  /// Specifies resource attributes that Terraform/OpenTofu should ignore when planning updates.
+  ///
+  /// See [documentation](https://developer.hashicorp.com/terraform/language/syntax/json#resource-and-data-blocks)
+  ignore_changes: IgnoreChanges
+}
+
+/// Primitive types for Terraform/OpenTofu [Variable]s.
+typealias PrimitiveType = "any" | "string" | "number" | "bool"
+
+/// Returns the closest whole number that is greater than or equal to the given value, which may be a fraction
+const function ceil(number: Input<Number>): Computed<Int> =
+  computedFunctionCall<Int>(new { inputs = List(number); functionName = "ceil" })
+
+/// Returns the closest whole number that is less than or equal to the given value, which may be a fraction.
+const function floor(number: Input<Number>): Computed<Int> =
+  computedFunctionCall<Int>(new { inputs = List(number); functionName = "floor" })
+
+/// Renders the [type] in a normal form expected in [Variable] definitions.
+const function renderType(type: PrimitiveType | StructuralType): String =
+  if (type is PrimitiveType)
+    type
+  else
+    type.rendered
+
+typealias Constructor = "list" | "set" | "map" | "tuple" | "object"
+
+/// The class of structured (non-primitive) types.
+class StructuralType {
+  of: *(PrimitiveType | StructuralType)(arity == "one")
+    | Listing<PrimitiveType | StructuralType>(arity == "many") = "any"
+  structure: Constructor
+  local arity: *"one" | "many" = if (structure is "list" | "set" | "map") "one" else "many"
+  local asRendered: String =
+    "\(structure)(\(if (arity == "one")
+      renderType(of as PrimitiveType | StructuralType)
+    else
+      new Mapping<Constructor, String> {
+        ["tuple"] = "[\(of.toList().map((it) -> renderType(it)).join(", "))]"
+        ["object"] =
+          "{\(new Listing {
+            for (k, v in of as Listing<PrimitiveType | StructuralType>) {
+              "\(k) = \(renderType(v))"
+            }
+          }.join(", "))}"
+      }[structure])"
+  hidden rendered: String(this == asRendered) = asRendered
+}
+
+/// Creates an empty mapping from resource name to resource type [T] that adds the resource name to
+/// the `$path` of each resource.
+function resourceMapping<T>(): Mapping<Identifier, T> = new {
+  default { key ->
+    $path { key }
+  }
+}
+
+/// Creates an empty listing from resource name to resource type [T] that adds the index to the
+/// `$path` of each resource.
+function resourceListing<T>(): Listing<T> = new {
+  default { key ->
+    $path { key }
+  }
+}
+
+/// Base class for a Terraform/OpenTofu resource.
+typealias Resource = ResourceModule
+
+/// Base class for a Terraform/OpenTofu data source.
+typealias DataSource = DataSourceModule
+
+/// A Terraform (input) variable definition.
+///
+/// When setting [type] to a [PrimitiveType] or [StructuralType], [default] must be of the correct type to
+/// meet its constraint.
+/// Using _typed_ (in this way) [Variable]s *does* require adding appropriate converters.
+///
+/// For example,
+/// ```
+/// foo = new Variable {
+///   type = "list(number)"
+///   default = "[42, 13.37]" // String-valued, unchecked
+/// }.default // Works!
+///
+/// bar = new Variable {
+///   type = new StructuralType { structure = "list"; of = "number" }
+///   default = "[42, 13.37]"
+/// }.default // Throws an error, because `default` should be a `List<Number>` or `Listing<Number>`.
+///
+/// baz = new Variable {
+///   type = new StructuralType { structure = "list"; of = "number" }
+///   default = new Listing {
+///       42
+///       13.37
+///     }
+/// }.default // Works!
+/// ```
+class Variable {
+  type: *PrimitiveType | StructuralType = "any"
+
+  default: Any(utils.instanceOf(this, type))?
+
+  sensitive: Boolean = false
+
+  description: String?
+
+  hidden name: String
+}
+
+/// A Terraform configuration.
+///
+/// Used to configure Terraform itself.
+class Configuration {
+  backend: StateBackends?
+  required_providers: Mapping<String, RequiredProvider>
+}
+
+/// The Terraform output definition.
+///
+/// Each entry has an interpolated [value] e.g. `"${aws_instance.example}"`,
+/// non interpolated [description] and a [Boolean] switch [sensitive] which
+/// suppresess the output of the variable within the CLI, more details:
+/// <https://www.terraform.io/docs/language/values/outputs.html#sensitive-suppressing-values-in-cli-output>
+class OutputEntry {
+  value: Any
+  description: String?
+  sensitive: Boolean?
+}
+
+/// A Terraform required provider entry.
+///
+/// <https://www.terraform.io/docs/language/providers/requirements.html>
+class RequiredProvider {
+  /// The global source address for the provider you intend to use.
+  ///
+  /// For example `hashicorp/aws`.
+  source: String
+
+  /// Version constraint specifying which subset of available provider versions the module is compatible with.
+  ///
+  /// Supports exact match or ranges, e.g. `~> 1.0`.
+  /// See [docs](https://www.terraform.io/language/providers/requirements#version-constraints) for further details.
+  version: String?
+}
+
+/// Configuration for different state backends.
+class StateBackends {
+  /// Stores the state as an object in a configurable prefix in a pre-existing bucket on Google Cloud Storage (GCS).
+  ///
+  /// The bucket must exist prior to configuring the backend.
+  /// This backend supports state locking.
+  /// <https://developer.hashicorp.com/terraform/language/settings/backends/gcs>
+  gcs: StateBackendGoogleCloudStorage?
+
+  /// Stores the state in a Postgres database version 10 or newer.
+  ///
+  /// This backend supports state locking.
+  ///
+  /// <https://developer.hashicorp.com/terraform/language/settings/backends/pg>
+  pg: StateBackendPg?
+
+  /// Stores the state in an s3-compatible object storage
+  ///
+  /// Can be used to store in [McQueen](https://docs.aci.apple.com/blob_store/getting_started.html)
+  s3: StateBackendAWSS3?
+}
+
+/// Stores the state as an object in a configurable prefix in a pre-existing bucket on Google Cloud Storage (GCS).
+///
+/// <https://developer.hashicorp.com/terraform/language/settings/backends/gcs>
+class StateBackendGoogleCloudStorage {
+  /// The name of the GCS bucket.
+  bucket: String(!isBlank)
+
+  /// The prefix inside the bucket.
+  ///
+  /// Named states for workspaces are stored in an object called `<prefix>/<name>.tfstate`.
+  prefix: String
+}
+
+/// Stores the state in a Postgres database version 10 or newer.
+///
+/// The pg backend supports the standard libpq
+/// [environment variables](https://www.postgresql.org/docs/current/libpq-envars.html).
+///
+/// <https://developer.hashicorp.com/terraform/language/settings/backends/pg>
+class StateBackendPg {
+  /// Postgres connection string; a postgresql:// URL.
+  ///
+  /// The PG_CONN_STR and standard libpq environment variables can also be used to indicate how to connect to the
+  /// PostgreSQL database.
+  conn_str: String(startsWith("postgresql://"))?
+
+  /// Name of the automatically-managed Postgres schema, default to terraform_remote_state.
+  ///
+  /// Can also be set using the `PG_SCHEMA_NAME` environment variable.
+  schema_name: String = "terraform_remote_state"
+
+  /// If set to true, the Postgres schema must already exist.
+  ///
+  /// Can also be set using the `PG_SKIP_SCHEMA_CREATION` environment variable. Terraform won't try to create the
+  /// schema, this is useful when it has already been created by a database administrator.
+  skip_schema_creation: Boolean = false
+
+  /// If set to true, the Postgres table must already exist.
+  ///
+  /// Can also be set using the `PG_SKIP_TABLE_CREATION` environment variable. Terraform won't try to create the table,
+  /// this is useful when it has already been created by a database administrator.
+  skip_table_creation: Boolean = false
+
+  /// If set to true, the Postgres index must already exist.
+  ///
+  /// Can also be set using the `PG_SKIP_INDEX_CREATION` environment variable. Terraform won't try to create the index,
+  /// this is useful when it has already been created by a database administrator.
+  skip_index_creation: Boolean = false
+}
+
+/// Stores the state as an object in a configurable prefix in a pre-existing bucket on AWS S3 or compatible platforms (McQueen).
+///
+/// <https://developer.hashicorp.com/terraform/language/settings/backends/s3>
+class StateBackendAWSS3 {
+  /// Path to the state file inside the s3 bucket, which prefixed by [workspace_key_prefix].
+  key: String(matches(Regex(#"[a-zA-Z0-9!_.*'()/&$@=;:+\s,?-]+"#)))
+
+  /// The name of the S3 bucket.
+  bucket: String(
+    matches(Regex(#"[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]"#)),
+    !contains(".."),
+    !startsWith("xn--"),
+    !startsWith("sthree-"),
+  )
+
+  /// Prefix to the state path.
+  workspace_key_prefix: String(matches(Regex(#"[a-zA-Z0-9!_.*'()/&$@=;:+\s,?-]+"#)))?
+
+  /// AWS named profile, equivalent to using AWS_PROFILE environment.
+  profile: String?
+
+  /// Endpoint URL, useful with McQueen.
+  endpoint: String?
+
+  /// AWS/McQueen region.
+  region: String?
+
+  /// Custom endpoint URL for the AWS DynamoDB API.
+  dynamodb_endpoint: String?
+
+  /// Name of DynamoDB Table to use for state locking and consistency.
+  dynamodb_table: String(matches(Regex(#"[a-zA-Z0-9_.0]+"#)))?
+
+  /// Enable server-side [encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html).
+  encrypt: Boolean = true
+
+  /// Whether to use a lockfile for locking the state file.
+  use_lockfile: Boolean?
+
+  /// Enable path-style S3 URLs (https://<HOST>/<BUCKET> instead of https://<BUCKET>.<HOST>).
+  use_path_style: Boolean?
+
+  /// Server-side encryption key.
+  sse_customer_key: String?
+
+  /// Amazon Resource Name (ARN) of a Key Management Service (KMS) Key to use for encrypting the state.
+  kms_key_id: String?
+
+  /// [Canned ACL](https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html#canned-acl) to be applied to the state file.
+  acl: (
+    "private"
+      | "public-read"
+      | "public-read-write"
+      | "aws-exec-read"
+      | "authenticated-read"
+      | "bucket-owner-read"
+      | "bucket-owner-full-control"
+      | "log-delivery-write"
+  )?
+
+  /// Skip credentials validation via the STS API.
+  skip_credentials_validation: Boolean?
+
+  /// Skip validation of provided region name.
+  skip_region_validation: Boolean?
+
+  /// Skip usage of EC2 Metadata API.
+  skip_metadata_api_check: Boolean?
+
+  /// Whether to skip requesting the account ID.
+  skip_requesting_account_id: Boolean?
+}
+
+/// A model of the resource, it's id and entry name.
+class ResourceMetadata {
+  /// The name of the resource type.
+  name: String
+
+  /// The id of the resource within Terraform.
+  id: Identifier
+
+  /// The id of the resource as represented in the external system.
+  entry: String
+}
+
+/// A way to structure Terraform Metadata that can be repurposed by other tooling.
+class Metadata {
+  /// A list of resources and their ids.
+  resourceIds: Listing<ResourceMetadata>
+}
+
+/// A valid Terraform [identifier](https://www.terraform.io/language/syntax/configuration#identifiers).
+///
+/// Identifiers can contain letters, digits, underscores (`_`), and hyphens (`-`).
+/// The first character of an identifier must not be a digit, to avoid ambiguity with literal numbers.
+typealias Identifier = String(matches(Regex(#"^([a-zA-Z]|_)[a-zA-Z0-9_\-$]+"#)))
+
+/// Fully qualified identifier, including the provider name.
+///
+/// For example: `spinnaker_pipeline.some_pipeline_name`
+typealias FullIdentifier = String(this.split(".").length == 2)
+
+/// Sanitizes a string to be a valid Terraform identifier.
+///
+/// Identifiers must start with a letter or underscore, and may contain only letters,
+/// digits, underscores, and dashes.
+/// This helper does this by replacing invalid characters with an underscore (`_`).
+function sanitizeIdentifier(name: String(startsWith(Regex(#"([a-zA-Z]|_)"#)))): Identifier =
+  name.replaceAll(Regex(#"[^a-zA-Z0-9_\-]"#), "_")
+
+local const computedValueDomain: ComputedResourceValue = new {}
+
+/// Creates an instance of a computed value.
+function computed<T>(value: Referenceable, propertyName: String): Computed<T> =
+  ref.Reference<ComputedResourceValue, T>(computedValueDomain, new ReferencedValue {
+    _value = value
+    _propertyName = propertyName
+  })
+
+/// Creates an instance of a computed value.
+const function computedFunctionCall<T>(call: FunctionCall): Computed<T> =
+  ref.Reference<ComputedResourceValue, T>(computedValueDomain, call)
+
+abstract class TfDeferredValueDomain extends ref.AbstractDomain {
+  local function renderPath(reference: ref.Reference<this, Any>) =
+    if (reference.getPath().isEmpty)
+      ""
+    else
+      reference
+        .getPath()
+        .map((it) ->
+          if (it.isSubscript && it.key is Int)
+            "[\(it.key)]"
+          else if (it.isSubscript)
+            ".\(it.key)"
+          else
+            ".\(it.property)"
+        )
+        .join("")
+
+  function renderReference(reference: ref.Reference<this, Any>): String =
+    let (data = reference.getData() as ReferenceData)
+    let (path = renderPath(reference))
+      "${\(data.innerRendered)\(path)}"
+}
+
+class ComputedResourceValue extends TfDeferredValueDomain
+
+class StaticValue extends TfDeferredValueDomain
+
+/// Signifies that this property was represented as an HCL block instead of an attribute.
+///
+/// ```
+/// # block syntax
+/// foo {}
+///
+/// # attribute syntax
+/// foo = {}
+/// ```
+///
+/// In JSON, this is represented as an array.
+class Block extends ConvertProperty {
+  render = (property: Pair<String, Any>, _) ->
+    let (value = property.value as Referenceable?)
+      if (value == null)
+        Pair(property.key, null)
+      else
+        Pair(property.key, new Listing { value })
+}
+
+class RenameProperty extends ConvertProperty {
+  to: String
+
+  render = (property: Pair<String, Any>, _) -> Pair(to, property.value)
+}
+
+abstract local class ReferenceData {
+  fixed innerRendered: String
+}
+
+local class ReferencedValue extends ReferenceData {
+  _value: Referenceable
+
+  _propertyName: String
+
+  /// `foo.bar[0]`, for the path `foo`, `bar`, `0`.
+  local function renderPath(path: Listing<String | Int>) =
+    path
+      .toList()
+      .mapIndexed((idx, it) ->
+        if (it is Int)
+          "[\(it)]"
+        else if (idx == 0)
+          it
+        else
+          ".\(it)"
+      )
+      .join("")
+
+  fixed innerRendered = "\(renderPath(_value.$path)).\(_propertyName)"
+}
+
+local class FunctionCall extends ReferenceData {
+  /// [null] if this is a built-in function
+  provider: String?
+
+  /// The name of the function
+  functionName: String
+
+  /// The inputs to the function
+  inputs: List<Input<Any>>
+
+  fixed innerRendered =
+    if (provider == null)
+      "\(functionName)(\(inputs.join(", ")))"
+    else
+      "provider::\(provider)::\(functionName)(\(inputs.join(", ")))"
+}
+
+output {
+  renderer = new JsonRenderer {
+    omitNullProperties = true
+    converters {
+      [Listing] = (it) -> if (it.isEmpty) null else it
+      [Mapping] = (it) ->
+        if (it.isEmpty)
+          null
+        else
+          it
+            .toMap()
+            .entries
+            .sortBy((it) -> it.first)
+            .toMap((it) -> it.first, (it) -> it.second)
+      [import("pkl:ref").Reference] = (it) -> it.toString()
+    }
+  }
+}

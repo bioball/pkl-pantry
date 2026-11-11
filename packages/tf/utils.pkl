@@ -1,0 +1,54 @@
+//===----------------------------------------------------------------------===//
+// Copyright © 2026 Apple Inc. and the Pkl project authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//===----------------------------------------------------------------------===//
+module tf.utils
+
+import "tf.pkl"
+
+function instanceOf(thing: Any, type: tf.PrimitiveType | tf.StructuralType): Boolean =
+  if (type is "any")
+    true
+  else if (type is "string")
+    thing is String
+  else if (type is "number")
+    thing is Number
+  else if (type is "bool")
+    thing is Boolean
+  else if (type.structure is "list" | "set")
+    (thing is Listing || thing is Collection)
+      && (thing as Listing | Collection)
+        .toList()
+        .every((it) -> instanceOf(it, type.of as tf.PrimitiveType | tf.StructuralType))
+  else if (type.structure is "map")
+    (thing is Map || thing is Mapping)
+      && (thing as Map | Mapping)
+        .toMap()
+        .entries
+        .every((it) ->
+          it.first is String
+            && instanceOf(it.second, type.of as tf.PrimitiveType | tf.StructuralType)
+        )
+  else if (type.structure is "object")
+    (thing is Dynamic || thing is Typed)
+      && (thing as Dynamic | Typed)
+        .toMap()
+        .entries
+        .every((it) ->
+          it.first is String
+            && let (ty = type.of.getOrNull(it.first) as (tf.PrimitiveType | tf.StructuralType)?)
+              ty != null && instanceOf(it, ty)
+        )
+  else
+    throw("Unrecognised type \(type)")

@@ -1,0 +1,48 @@
+//===----------------------------------------------------------------------===//
+// Copyright © 2026 Apple Inc. and the Pkl project authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//===----------------------------------------------------------------------===//
+/// Base class for a Terraform/OpenTofu data source.
+abstract module tf.DataSource
+
+extends "Referenceable.pkl"
+
+import "tf.pkl"
+
+/// Specify which provider configuration to use for a resource.
+///
+/// This overrides Terraform's default behavior of selecting the provider based on the resource type name.
+/// See [documentation](https://www.terraform.io/language/meta-arguments/depends_on).
+provider: String(matches(Regex("^.+\\..+$")))?
+
+/// Handle hidden resource or module dependencies that Terraform can't automatically infer.
+///
+/// Explicitly specifying a dependency is only necessary when a resource or module relies on some other resource's
+/// behavior but doesn't access any of that resource's data in its arguments.
+/// See [documentation](https://www.terraform.io/language/meta-arguments/resource-provider).
+depends_on: Listing<String>(isDistinct)
+
+/// Terraform will create that many instances of this resource.
+///
+/// Each instance has a distinct infrastructure object associated with it, and each is separately created, updated,
+/// or destroyed when the configuration is applied.
+/// See [documentation](https://www.terraform.io/language/meta-arguments/count).
+count: tf.Input<UInt>? = null
+
+/// The string that identifies the kind of this value; e.g. `aws_s3_bucket`.
+///
+/// This is an internal field.
+hidden const $kind: String
+
+hidden $path = new { "data"; $kind }

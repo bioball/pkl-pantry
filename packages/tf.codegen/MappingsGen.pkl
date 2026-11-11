@@ -1,0 +1,183 @@
+//===----------------------------------------------------------------------===//
+// Copyright © 2026 Apple Inc. and the Pkl project authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//===----------------------------------------------------------------------===//
+/// Generates a module that has a `Mapping` for each resource, ephemeral resource, or data source.
+///
+/// These are `Resources.pkl`, `EphemeralResources.pkl`, and `Data.pkl`; and sit next to `base.pkl`.
+module tf.codegen.MappingsGen
+
+import "@pkl.experimental.syntax/ExpressionNode.pkl"
+import "@pkl.experimental.syntax/ModuleNode.pkl"
+import "@pkl.experimental.syntax/TypeNode.pkl"
+
+import "ProviderSchemaGen.pkl"
+import "util.pkl"
+
+providers: Listing<ProviderSchemaGen>
+
+kind: "resource" | "ephemeral" | "data"
+
+/// The name of the generated module; e.g. `Resources`.
+fixed moduleName: String =
+  if (kind == "resource")
+    "Resources"
+  else if (kind == "ephemeral")
+    "EphemeralResources"
+  else
+    "Data"
+
+fixed moduleOutputPath: String = "providers/\(moduleName).pkl"
+
+local class Entry {
+  /// The name of the resource or data source; e.g. `aws_s3_bucket`.
+  name: String
+
+  description: String?
+
+  /// The name of the Pkl class.
+  typeName: String
+
+  /// The path of the module that holds the class, relative to `base.pkl`.
+  importPath: String
+
+  /// The name of the provider, without the organization; e.g. `aws`.
+  providerName: String
+
+  /// The organization and name of the provider; e.g. `hashicorp` and `aws`.
+  providerPrefix: List<String>
+
+  /// The names to import the class as, in order of preference.
+  ///
+  /// This is the name of the class, which is the name of its module. If another class already has
+  /// that name, then it is prefixed with the name of the provider (`DockerAccessToken`), and then
+  /// with the organization too (`DockerDockerAccessToken`).
+  candidates: List<String> =
+    List(
+      typeName,
+      util.camelCase(providerName) + typeName,
+      providerPrefix.map((it) -> util.camelCase(it)).join("") + typeName
+    )
+}
+
+local entries: Listing<Entry> = new {
+  for (provider in providers) {
+    when (kind == "resource") {
+      for (resource in provider.resources) {
+        new {
+          name = resource.resourceName
+          description = resource.resource.block.description
+          typeName = resource.pklName
+          importPath = resource.moduleOutputPath.replaceFirst("providers/", "")
+          providerName = provider.providerName
+          providerPrefix = provider.providerPrefix
+        }
+      }
+    }
+    when (kind == "ephemeral") {
+      for (resource in provider.ephemeralResources) {
+        new {
+          name = resource.resourceName
+          description = resource.resource.block.description
+          typeName = resource.pklName
+          importPath = resource.moduleOutputPath.replaceFirst("providers/", "")
+          providerName = provider.providerName
+          providerPrefix = provider.providerPrefix
+        }
+      }
+    }
+    when (kind == "data") {
+      for (data in provider.data) {
+        new {
+          name = data.dataSourceName
+          description = data.dataSchema.block.description
+          typeName = data.pklName
+          importPath = data.moduleOutputPath.replaceFirst("providers/", "")
+          providerName = provider.providerName
+          providerPrefix = provider.providerPrefix
+        }
+      }
+    }
+  }
+}
+
+/// The names that the classes are imported as, in the order of [entries].
+///
+/// No two classes have the same name, and none has the name of something that is already in scope.
+local importNames: List<String> =
+  entries
+    .toList()
+    .fold(Pair(List(), util.reservedClassNames), (acc, entry) ->
+      let (name = util.firstAvailable(entry.candidates, acc.second))
+        Pair(acc.first + List(name), acc.second.add(name))
+    )
+    .first
+
+fixed moduleNode: ModuleNode = new {
+  declaration {
+    moduleHeader {
+      name = util.className("providers.\(moduleName)")
+    }
+  }
+  imports {
+    new { value = "@tf/tf.pkl" }
+    for (idx, entry in entries) {
+      new {
+        value = entry.importPath
+        // The name of a module is the default name to import it as.
+        when (importNames[idx] != entry.typeName) {
+          alias = importNames[idx]
+        }
+      }
+    }
+  }
+  properties {
+    for (idx, entry in entries) {
+      new {
+        name { value = entry.name }
+        when (entry.description != null) {
+          docComment { value = entry.description!! }
+        }
+        local myType: TypeNode.DeclaredTypeNode = new {
+          name = util.className(importNames[idx])
+        }
+        typeAnnotation {
+          type = new TypeNode.DeclaredTypeNode {
+            name = util.className("Mapping")
+            typeArguments {
+              new TypeNode.DeclaredTypeNode {
+                name = util.className("tf.Identifier")
+              }
+              myType
+            }
+          }
+        }
+        defaultValue = new ExpressionNode.QualifiedMemberAccessExpressionNode {
+          lhs = new ExpressionNode.MemberAccessExpressionNode {
+            identifier { value = "tf" }
+          }
+          rhs {
+            identifier { value = "resourceMapping" }
+            typeArguments { myType }
+            arguments {}
+          }
+        }
+      }
+    }
+  }
+}
+
+output {
+  text = util.formatPkl(moduleNode.output.text)
+}

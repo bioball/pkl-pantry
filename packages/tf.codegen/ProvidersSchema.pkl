@@ -1,0 +1,373 @@
+//===----------------------------------------------------------------------===//
+// Copyright © 2026 Apple Inc. and the Pkl project authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//===----------------------------------------------------------------------===//
+/// ProviderSchemas represents the schemas of all providers and resources in use by the configuration.
+///
+/// Terraform JSON schema according to https://github.com/hashicorp/terraform-json/blob/main/schemas.go
+module tf.codegen.ProvidersSchema
+
+import "@tf/tf.pkl"
+
+import "ProvidersSchema.pkl"
+
+/// The version of the plan format.
+format_version: String
+
+/// The schemas for the providers in this configuration, indexed by provider type.
+provider_schemas: Mapping<String, ProviderSchema>(!isEmpty)
+
+/// ProviderSchema is the JSON representation of the schema of an entire provider.
+///
+/// Includes the provider configuration and any resources and data sources included with the provider.
+class ProviderSchema {
+  /// The schema for the provider's configuration.
+  provider: Schema
+
+  /// The schemas for any resources in this provider.
+  resource_schemas: Mapping<String, Schema>
+
+  /// The schemas for any data sources in this provider.
+  data_source_schemas: Mapping<String, Schema>
+
+  /// The schemas for any ephemeral resources in this provider.
+  ephemeral_resource_schemas: Mapping<String, Schema>
+
+  /// The definitions for any functions in this provider.
+  functions: Mapping<String, FunctionSignature>
+}
+
+/// Schema is the JSON representation of a particular schema.
+///
+/// Can be (provider configuration, resources, data sources).
+class Schema {
+  /// The version of the particular resource schema.
+  version: UInt
+
+  /// The root-level block of configuration values.
+  block: SchemaBlock
+}
+
+typealias SchemaDescriptionKindPlain = "plain"
+typealias SchemaDescriptionKindMarkdown = "markdown"
+typealias SchemaDescriptionKind = SchemaDescriptionKindPlain | SchemaDescriptionKindMarkdown
+
+/// SchemaBlock represents a nested block within a particular schema.
+class SchemaBlock {
+  /// The attributes defined at the particular level of this block.
+  attributes: Mapping<String, SchemaAttribute>
+
+  /// Any nested blocks within this particular block.
+  block_types: Mapping<String, SchemaBlockType>
+
+  /// The description for this block and format of the description.
+  description: String?
+  description_kind: SchemaDescriptionKind?
+
+  /// If true, this block is deprecated.
+  deprecated: Boolean = false
+}
+
+typealias SchemaNestingModeSingle = "single"
+typealias SchemaNestingModeGroup = "group"
+typealias SchemaNestingModeList = "list"
+typealias SchemaNestingModeSet = "set"
+typealias SchemaNestingModeMap = "map"
+
+typealias SchemaNestingMode =
+  SchemaNestingModeSingle
+    | SchemaNestingModeGroup
+    | SchemaNestingModeList
+    | SchemaNestingModeSet
+    | SchemaNestingModeMap
+
+/// SchemaBlockType describes a nested block within a schema.
+class SchemaBlockType {
+  /// The nesting mode for this block.
+  nesting_mode: SchemaNestingMode
+
+  /// The block data for this block type, including attributes and subsequent nested blocks.
+  block: SchemaBlock
+
+  /// The lower limit on items that can be declared of this block type.
+  min_items: UInt?
+
+  /// The upper limit on items that can be declared of this block type.
+  max_items: UInt?
+}
+
+/// SchemaAttribute describes an attribute within a schema block.
+class SchemaAttribute {
+  /// The attribute type.
+  type: AttributeType?
+
+  /// Details about a nested attribute type.
+  nested_type: SchemaNestedAttributeType?
+
+  /// The description field for this attribute.
+  description: String?
+  description_kind: SchemaDescriptionKind?
+
+  /// If true, this attribute is deprecated.
+  deprecated: Boolean = false
+
+  /// If true, this attribute is required - it has to be entered in configuration.
+  required: Boolean = false
+
+  /// If true, this attribute is optional - it does not need to be entered in configuration.
+  optional: Boolean = false
+
+  /// If true, this attribute is computed.
+  ///
+  /// It can be set by the provider. It may also be set by configuration if [optional] is true.
+  computed: Boolean = false
+
+  /// If true, this attribute is sensitive and will not be displayed in logs.
+  sensitive: Boolean = false
+
+  /// If [computed] and not [optional], this is an input-only property
+  function isReadOnly(): Boolean = computed && !optional
+}
+
+/// SchemaNestedAttributeType describes a nested attribute.
+class SchemaNestedAttributeType {
+  /// A map of nested attributes.
+  attributes: Mapping<String, SchemaAttribute>
+
+  /// The nesting mode for this attribute.
+  nesting_mode: SchemaNestingMode
+
+  /// The lower limit on number of items that can be declared of this attribute type (not applicable to single nesting mode).
+  min_items: UInt?
+
+  /// The upper limit on number of items that can be declared of this attribute type (not applicable to single nesting mode).
+  max_items: UInt?
+}
+
+/// FunctionSignature represents a function signature.
+class FunctionSignature {
+  /// Description is an optional human-readable description of the function
+  description: String?
+
+  /// Summary is an optional shortened description of the function
+  summary: String?
+
+  /// DeprecationMessage is an optional message that indicates that the function should be considered deprecated and what actions should be performed by the practitioner to handle the deprecation.
+  deprecation_message: String?
+
+  /// ReturnType is the ctyjson representation of the function's return types based on supplying all parameters using dynamic types. Functions can have dynamic return types.
+  return_type: AttributeType
+
+  /// Parameters describes the function's fixed positional parameters.
+  parameters: Listing<FunctionParameter>
+
+  /// VariadicParameter describes the function's variadic parameter if it is supported.
+  variadic_parameter: FunctionParameter?
+}
+
+/// FunctionParameter represents a parameter to a function.
+class FunctionParameter {
+  /// Name is an optional name for the argument.
+  name: String?
+
+  /// Description is an optional human-readable description of the argument
+  description: String?
+
+  /// IsNullable is true if null is acceptable value for the argument
+  is_nullable: Boolean
+
+  /// A type that any argument for this parameter must conform to.
+  type: AttributeType
+}
+
+/// Cty type limited by types allowed in terraform resource schema.
+///
+/// See <https://developer.hashicorp.com/terraform/plugin/sdkv2/schemas/schema-types> for allowed types.
+/// See <https://github.com/zclconf/go-cty/blob/main/docs/types.md> for cty type.
+typealias AttributeType = tf.PrimitiveType | Dynamic | AggregateType | ObjectType
+
+/// Construct with primitive elements
+typealias PrimitiveConstruct = *tf.Constructor | tf.PrimitiveType
+
+/// Dynamic type.
+///
+/// See <https://github.com/zclconf/go-cty/blob/main/docs/types.md#the-dynamic-pseudo-type>
+typealias Dynamic = "dynamic"
+
+typealias AggregateType = Listing<Any>(length == 2)
+
+typealias ObjectType = Mapping<String, Any>
+
+// TODO: reinstate full types after recursive typealiases are supported in Pkl
+// typealias AggregateType = Listing<PrimitiveConstruct|AggregateNestedType1|AggregateNestedType2|AggregateNestedType3|AggregateNestedType4|ObjectType>(length == 2)
+// typealias AggregateNestedType1 = Listing<PrimitiveConstruct|ObjectType>(length == 2)
+// typealias AggregateNestedType2 = Listing<PrimitiveConstruct|AggregateNestedType1|ObjectType>(length == 2)
+// typealias AggregateNestedType3 = Listing<PrimitiveConstruct|AggregateNestedType1|AggregateNestedType2|ObjectType>(length == 2)
+// typealias AggregateNestedType4 = Listing<PrimitiveConstruct|AggregateNestedType1|AggregateNestedType2|AggregateNestedType3|ObjectType>(length == 2)
+// typealias ObjectType = Mapping<String, terraform.PrimitiveType|Listing<PrimitiveConstruct|Listing<PrimitiveConstruct|ObjectNestedType|Listing<PrimitiveConstruct|ObjectNestedType>>(length == 2)>(length == 2)>
+// typealias ObjectNestedType = *ObjectNestedType1|ObjectNestedType2|ObjectNestedType3|ObjectNestedType4|ObjectNestedType5|ObjectNestedType6|ObjectNestedType7
+// typealias ObjectNestedType1 = Mapping<String, terraform.PrimitiveType|Listing<PrimitiveConstruct>(length == 2)>
+// typealias ObjectNestedType2 = Mapping<String, terraform.PrimitiveType|Listing<PrimitiveConstruct|Listing<PrimitiveConstruct|ObjectNestedType1>(length == 2)>(length == 2)>
+// typealias ObjectNestedType3 = Mapping<String, terraform.PrimitiveType|Listing<PrimitiveConstruct|Listing<PrimitiveConstruct|ObjectNestedType1|ObjectNestedType2>(length == 2)>(length == 2)>
+// typealias ObjectNestedType4 = Mapping<String, terraform.PrimitiveType|Listing<PrimitiveConstruct|Listing<PrimitiveConstruct|ObjectNestedType1|ObjectNestedType2|ObjectNestedType3>(length == 2)>(length == 2)>
+// typealias ObjectNestedType5 = Mapping<String, terraform.PrimitiveType|Listing<PrimitiveConstruct|Listing<PrimitiveConstruct|ObjectNestedType1|ObjectNestedType2|ObjectNestedType3|ObjectNestedType4>(length == 2)>(length == 2)>
+// typealias ObjectNestedType6 = Mapping<String, terraform.PrimitiveType|Listing<PrimitiveConstruct|Listing<PrimitiveConstruct|ObjectNestedType1|ObjectNestedType2|ObjectNestedType3|ObjectNestedType4|ObjectNestedType5>(length == 2)>(length == 2)>
+// typealias ObjectNestedType7 = Mapping<String, terraform.PrimitiveType|Listing<PrimitiveConstruct|Listing<PrimitiveConstruct|ObjectNestedType1|ObjectNestedType2|ObjectNestedType3|ObjectNestedType4|ObjectNestedType5|ObjectNestedType6>(length == 2)>(length == 2)>
+
+function convert(parsed: Mapping): ProvidersSchema = new {
+  format_version = parsed["format_version"]
+  provider_schemas {
+    for (providerName, providerSchema in parsed["provider_schemas"]) {
+      [providerName] = convertProviderSchema(providerSchema)
+    }
+  }
+}
+
+local function convertProviderSchema(parsed: Mapping): ProviderSchema = new {
+  provider = convertSchema(parsed["provider"])
+  resource_schemas {
+    when (parsed.containsKey("resource_schemas")) {
+      for (name, schema in parsed["resource_schemas"]) {
+        [name] = convertSchema(schema)
+      }
+    }
+  }
+  data_source_schemas {
+    when (parsed.containsKey("data_source_schemas")) {
+      for (name, schema in parsed["data_source_schemas"]) {
+        [name] = convertSchema(schema)
+      }
+    }
+  }
+  ephemeral_resource_schemas {
+    when (parsed.containsKey("ephemeral_resource_schemas")) {
+      for (name, schema in parsed["ephemeral_resource_schemas"]) {
+        [name] = convertSchema(schema)
+      }
+    }
+  }
+  functions {
+    when (parsed.containsKey("functions")) {
+      for (name, signature in parsed["functions"]) {
+        [name] = convertFunctionSignature(signature)
+      }
+    }
+  }
+}
+
+local function convertSchema(parsed: Mapping): Schema = new {
+  version = parsed["version"]
+  block = convertSchemaBlock(parsed["block"])
+}
+
+local function convertSchemaBlock(parsed: Mapping): SchemaBlock = new {
+  attributes {
+    when (parsed.containsKey("attributes")) {
+      for (attributeName, attribute in parsed["attributes"]) {
+        [attributeName] = convertSchemaAttribute(attribute)
+      }
+    }
+  }
+  block_types {
+    when (parsed.containsKey("block_types")) {
+      for (blockTypeName, blockType in parsed["block_types"]) {
+        [blockTypeName] {
+          nesting_mode = blockType["nesting_mode"]
+          block = convertSchemaBlock(blockType["block"])
+          min_items = blockType.getOrNull("min_items")
+          max_items = blockType.getOrNull("max_items")
+        }
+      }
+    }
+  }
+  description = parsed.getOrNull("description")
+  description_kind = parsed.getOrNull("description_kind")
+  deprecated = parsed.getOrNull("deprecated") ?? false
+}
+
+local function convertSchemaAttribute(parsed: Mapping): SchemaAttribute = new {
+  when (parsed.containsKey("type")) {
+    type = convertSchemaAttributeType(parsed["type"])
+  }
+  when (parsed.containsKey("nested_type")) {
+    nested_type = convertSchemaNestedAttributeType(parsed["nested_type"])
+  }
+  description = parsed.getOrNull("description")
+  description_kind = parsed.getOrNull("description_kind")
+  deprecated = parsed.getOrNull("deprecated") ?? false
+  required = parsed.getOrNull("required") ?? false
+  optional = parsed.getOrNull("optional") ?? false
+  computed = parsed.getOrNull("computed") ?? false
+  sensitive = parsed.getOrNull("sensitive") ?? false
+}
+
+local function convertSchemaAttributeType(rawType: Any): AttributeType =
+  if (rawType is tf.PrimitiveType | Dynamic)
+    rawType
+  else if (rawType is Mapping<String, Any>)
+    convertSchemaObjectAttributeType(rawType)
+  else if (rawType is Listing<Any>(length == 2))
+    convertSchemaAggregateAttributeType(rawType)
+  else
+    throw("unexpected attribute type")
+
+local function convertSchemaObjectAttributeType(rawType: Mapping<String, Any>): ObjectType = new {
+  for (k, v in rawType) {
+    [k] = convertSchemaAttributeType(v)
+  }
+}
+
+local function convertSchemaAggregateAttributeType(
+  rawType: Listing<Any>(length == 2)
+): AggregateType = new {
+  rawType[0]
+  convertSchemaAttributeType(rawType[1])
+}
+
+local function convertSchemaNestedAttributeType(parsed: Mapping): SchemaNestedAttributeType = new {
+  nesting_mode = parsed["nesting_mode"]
+  attributes {
+    when (parsed.containsKey("attributes")) {
+      for (attributeName, attribute in parsed["attributes"]) {
+        [attributeName] = convertSchemaAttribute(attribute)
+      }
+    }
+  }
+  min_items = parsed.getOrNull("min_items")
+  max_items = parsed.getOrNull("max_items")
+}
+
+local function convertFunctionSignature(parsed: Mapping): FunctionSignature = new {
+  description = parsed.getOrNull("description")
+  summary = parsed.getOrNull("summary")
+  deprecation_message = parsed.getOrNull("deprecation_message")
+  return_type = convertSchemaAttributeType(parsed["return_type"])
+  parameters {
+    when (parsed.containsKey("parameters")) {
+      for (v in parsed["parameters"]) {
+        convertFunctionParameter(v)
+      }
+    }
+  }
+  when (parsed.containsKey("variadic_parameter")) {
+    variadic_parameter = convertFunctionParameter(parsed["variadic_parameter"])
+  }
+}
+
+local function convertFunctionParameter(parsed: Mapping): FunctionParameter = new {
+  name = parsed.getOrNull("name")
+  description = parsed.getOrNull("description")
+  is_nullable = parsed["is_nullable"]
+  type = convertSchemaAttributeType(parsed["type"])
+}

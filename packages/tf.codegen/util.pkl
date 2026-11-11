@@ -1,0 +1,1113 @@
+//===----------------------------------------------------------------------===//
+// Copyright © 2026 Apple Inc. and the Pkl project authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//===----------------------------------------------------------------------===//
+module tf.codegen.util
+
+import "pkl:syntax"
+
+import "@pkl.experimental.syntax/AnnotationNode.pkl"
+import "@pkl.experimental.syntax/ClassNode.pkl"
+import "@pkl.experimental.syntax/ClassOrModuleNode.pkl"
+import "@pkl.experimental.syntax/ExpressionNode.pkl"
+import "@pkl.experimental.syntax/ObjectBodyNode.pkl"
+import "@pkl.experimental.syntax/operators.pkl"
+import "@pkl.experimental.syntax/QualifiedIdentifierNode.pkl"
+import "@pkl.experimental.syntax/TypeNode.pkl"
+import "@tf/tf.pkl"
+
+import "ProvidersSchema.pkl"
+
+function convertResourceName(resourceName: String, providerName: String): String =
+  camelCase(resourceName.replaceFirst("\(providerName)_", ""))
+
+function camelCase(name: String): String = name.split("_").map((e) -> e.capitalize()).join("")
+
+/// The names of the classes in the module being generated, by their path (see [pathKey()]).
+///
+/// The names are unique within a module, so they depend on all of the classes of the module. This
+/// is set by amending this module; for example, `(util) { classNames = ... }`. Use
+/// [computeClassNames()] to compute it.
+classNames: Map<String, String>
+
+/// The key of the path to a nested object: the names of the attributes and blocks that lead to it.
+///
+/// [parent] is the key of the parent object, which is `null` for the top level.
+function pathKey(parent: String?, name: String): String =
+  if (parent == null) name else "\(parent).\(name)"
+
+/// The name of the generated class for the nested object [name] of [parent].
+///
+/// Top-level classes (no [parent]) are named after [name] alone.
+function nestedClassName(parent: String?, name: String): String = classNames[pathKey(parent, name)]
+
+/// Names that classes cannot have, because they are already taken by something in scope of the
+/// generated modules.
+reservedClassNames: Set<String> =
+  Set(
+    "Any",
+    "Boolean",
+    "Bytes",
+    "Class",
+    "Collection",
+    "DataSize",
+    "Duration",
+    "Dynamic",
+    "Float",
+    "Function",
+    "Function0",
+    "Function1",
+    "Function2",
+    "Function3",
+    "Function4",
+    "Function5",
+    "Int",
+    "Int16",
+    "Int32",
+    "Int8",
+    "IntSeq",
+    "List",
+    "Listing",
+    "Map",
+    "Mapping",
+    "Module",
+    "Nothing",
+    "Null",
+    "Number",
+    "Object",
+    "Pair",
+    "Regex",
+    "Set",
+    "String",
+    "Typed",
+    "TypeAlias",
+    "UInt",
+    "UInt16",
+    "UInt32",
+    "UInt8",
+    "Unknown",
+    "Provider",
+    "BaseProvider",
+    "Referenceable"
+  )
+
+/// The first of [candidates] that is not in [taken]; or if they are all taken, the last of them with
+/// a number.
+function firstAvailable(candidates: List<String>, taken: Set<String>): String =
+  candidates.findOrNull((candidate) -> !taken.contains(candidate))
+    ?? numberedClassName(candidates.last, taken, 2)
+
+/// The first name for [path] that is not in [taken].
+///
+/// This is the name of the last attribute alone; if that is taken, it is prefixed with the name of
+/// its parent; and so on.
+local function pickClassName(path: List<String>, taken: Set<String>): String =
+  let (
+    candidates =
+      IntSeq(1, path.length)
+        .toList()
+        .map((n) -> path.drop(path.length - n).map((it) -> camelCase(it)).join(""))
+  )
+    candidates.findOrNull((candidate) -> !taken.contains(candidate))
+      ?? numberedClassName(candidates.last, taken, 2)
+
+/// Used if there are no more parents to prefix.
+local function numberedClassName(base: String, taken: Set<String>, n: Int): String =
+  if (taken.contains("\(base)\(n)")) numberedClassName(base, taken, n + 1) else "\(base)\(n)"
+
+/// Gives every path a unique class name, in order.
+///
+/// A class gets the shortest name that is not yet taken by a previous class.
+function computeClassNames(paths: List<List<String>>): Map<String, String> =
+  paths
+    .fold(Pair(Map(), reservedClassNames), (acc, path) ->
+      let (name = pickClassName(path, acc.second))
+        Pair(acc.first.put(path.join("."), name), acc.second.add(name))
+    )
+    .first
+
+/// A class that is generated for a nested object.
+class NestedClass {
+  /// The path to the nested object: the names of the attributes and blocks that lead to it.
+  path: List<String>
+
+  kind: "object" | "block" | "nestedType"
+
+  /// The type of the class, for kind `object`.
+  objectType: ProvidersSchema.ObjectType?
+
+  /// The schema of the class, for kinds `block` and `nestedType`.
+  container: (ProvidersSchema.SchemaBlock | ProvidersSchema.SchemaNestedAttributeType)?
+
+  forProvider: Boolean
+
+  /// Whether the class is for a read-only attribute, in which case its properties are plain types.
+  isComputed: Boolean
+
+  key: String = path.join(".")
+}
+
+local function objectClasses(
+  typ: ProvidersSchema.AttributeType,
+  at: List<String>,
+  fp: Boolean,
+  computed: Boolean
+): List<NestedClass> =
+  if (typ is ProvidersSchema.AggregateType)
+    objectClasses(typ[1] as ProvidersSchema.AttributeType, at, fp, computed)
+  else if (typ is ProvidersSchema.ObjectType)
+    List(new NestedClass {
+      path = at
+      kind = "object"
+      objectType = typ
+      forProvider = fp
+      isComputed = computed
+    })
+      + typ
+        .toMap()
+        .entries
+        .flatMap((entry) ->
+          objectClasses(
+            entry.second as ProvidersSchema.AttributeType,
+            at + List(entry.first),
+            fp,
+            computed
+          )
+        )
+  else
+    List()
+
+local function nestedTypeClasses(
+  typ: ProvidersSchema.SchemaNestedAttributeType,
+  at: List<String>,
+  fp: Boolean,
+  computed: Boolean
+): List<NestedClass> =
+  List(new NestedClass {
+    path = at
+    kind = "nestedType"
+    container = typ
+    forProvider = fp
+    isComputed = computed
+  })
+    + attributeClasses(typ.attributes, at, fp, computed)
+
+local function attributeClasses(
+  attributes: Mapping<String, ProvidersSchema.SchemaAttribute>,
+  at: List<String>,
+  fp: Boolean,
+  computed: Boolean
+): List<NestedClass> =
+  attributes
+    .toMap()
+    .entries
+    .flatMap((entry) ->
+      let (childComputed = computed || entry.second.isReadOnly())
+        if (entry.second.type != null)
+          objectClasses(entry.second.type!!, at + List(entry.first), fp, childComputed)
+        else
+          nestedTypeClasses(
+            entry.second.nested_type!!,
+            at + List(entry.first),
+            fp,
+            childComputed
+          )
+    )
+
+local function blockClasses(
+  block: ProvidersSchema.SchemaBlockType,
+  at: List<String>,
+  fp: Boolean
+): List<NestedClass> =
+  List(new NestedClass {
+    path = at
+    kind = "block"
+    container = block.block
+    forProvider = fp
+    isComputed = false
+  })
+    + attributeClasses(block.block.attributes, at, fp, false)
+    + nestedBlockClasses(block.block, at, fp)
+
+local function nestedBlockClasses(
+  block: ProvidersSchema.SchemaBlock,
+  at: List<String>,
+  fp: Boolean
+): List<NestedClass> =
+  block.block_types
+    .toMap()
+    .entries
+    .flatMap((entry) -> blockClasses(entry.second, at + List(entry.first), fp))
+
+/// The classes that are generated for the nested objects of [block], in the order in which they
+/// are generated.
+function classes(block: ProvidersSchema.SchemaBlock, fp: Boolean): List<NestedClass> =
+  attributeClasses(block.attributes, List(), fp, false)
+    + nestedBlockClasses(block, List(), fp)
+
+/// The classes that are generated for [typ], the type of a function's output or parameter [name].
+function functionTypeClasses(
+  typ: ProvidersSchema.AttributeType,
+  name: String,
+  computed: Boolean
+): List<NestedClass> = objectClasses(typ, List(name), false, computed)
+
+/// The base class of every generated nested class.
+///
+/// Modules that contain these classes need to import `@tf/Referenceable.pkl`.
+local referenceableType: TypeNode.DeclaredTypeNode = new {
+  name = className("Referenceable")
+}
+
+/// The paths of the classes to generate; the classes of other paths are the same as one of these.
+///
+/// This is set by amending this module, together with [classNames]. Use [computeLayout] to compute
+/// it.
+emittedClasses: Set<String>
+
+/// Whether the class for the nested object [name] of [parent] is generated.
+local function isEmitted(parent: String?, name: String): Boolean =
+  emittedClasses.contains(pathKey(parent, name))
+
+/// The properties of the class of an object type.
+local function objectProperties(
+  typ: ProvidersSchema.ObjectType,
+  parentKey: String,
+  forProvider: Boolean,
+  // Whether the attribute is read-only. The attribute itself is typed as `tf.Computed<...>`,
+  // so the properties of its nested objects are plain types.
+  isComputed: Boolean
+): Listing<ClassOrModuleNode.PropertyDefinitionNode> = new {
+  for (attrName, attr in typ) {
+    new {
+      name {
+        value = attrName
+      }
+
+      typeAnnotation {
+        type =
+          if (isComputed)
+            getBasePklType(attr as ProvidersSchema.AttributeType, parentKey, attrName)
+          else
+            // object schema does not expose optional or not so make all fields optional
+            new TypeNode.NullableTypeNode {
+              typeNode =
+                getPklType(
+                  attr as ProvidersSchema.AttributeType,
+                  parentKey,
+                  attrName,
+                  null,
+                  forProvider
+                )
+            }
+      }
+    }
+  }
+}
+
+// Support for limited schema of SchemaConfigModeAttr
+function renderObjectClasses(
+  typ: ProvidersSchema.AttributeType,
+  resourceName: String?,
+  attributeName: String,
+  forProvider: Boolean,
+  // Whether the attribute is read-only. The attribute itself is typed as `tf.Computed<...>`,
+  // so the properties of its nested objects are plain types.
+  isComputed: Boolean
+): Listing<ClassNode> = new {
+  when (typ is ProvidersSchema.AggregateType) {
+    ...renderObjectClasses(
+      typ[1] as ProvidersSchema.AttributeType,
+      resourceName,
+      attributeName,
+      forProvider,
+      isComputed
+    )
+  }
+
+  when (typ is ProvidersSchema.ObjectType && isEmitted(resourceName, attributeName)) {
+    new {
+      // TODO: should we depluralize class name for plural property?
+      classHeader {
+        name {
+          value = nestedClassName(resourceName, attributeName)
+        }
+        extendsClause {
+          type = referenceableType
+        }
+      }
+
+      properties =
+        objectProperties(
+          typ,
+          pathKey(resourceName, attributeName),
+          forProvider,
+          isComputed
+        )
+    }
+
+    for (attrName, attr in typ) {
+      ...renderObjectClasses(
+        attr as ProvidersSchema.AttributeType,
+        pathKey(resourceName, attributeName),
+        attrName,
+        forProvider,
+        isComputed
+      )
+    }
+  }
+}
+
+// Render class for nested blocks, SchemaConfigModeBlock type
+function renderBlockClasses(
+  block: ProvidersSchema.SchemaBlockType,
+  resourceName: String?,
+  blockName: String,
+  forProvider: Boolean
+): Listing<ClassNode> = new {
+  when (isEmitted(resourceName, blockName)) {
+    new {
+      classHeader {
+        name {
+          value = nestedClassName(resourceName, blockName)
+        }
+        extendsClause {
+          type = referenceableType
+        }
+      }
+
+      properties =
+        renderProperties(block.block, pathKey(resourceName, blockName), forProvider, false)
+    }
+
+    for (attributeName, attribute in block.block.attributes) {
+      when (attribute.type != null) {
+        ...renderObjectClasses(
+          attribute.type!!,
+          pathKey(resourceName, blockName),
+          attributeName,
+          forProvider,
+          attribute.isReadOnly()
+        )
+      } else {
+        ...renderNestedTypeClasses(
+          attribute.nested_type!!,
+          pathKey(resourceName, blockName),
+          attributeName,
+          forProvider,
+          attribute.isReadOnly()
+        )
+      }
+    }
+
+    for (nestedBlockName, nestedBlock in block.block.block_types) {
+      ...renderBlockClasses(
+        nestedBlock,
+        pathKey(resourceName, blockName),
+        nestedBlockName,
+        forProvider
+      )
+    }
+  }
+}
+
+// Render class for nested type, SchemaNestedAttributeType type
+function renderNestedTypeClasses(
+  typ: ProvidersSchema.SchemaNestedAttributeType,
+  resourceName: String?,
+  attrName: String,
+  forProvider: Boolean,
+  // Whether the attribute is read-only. The attribute itself is typed as `tf.Computed<...>`,
+  // so the properties of its nested class are plain types.
+  isComputed: Boolean
+): Listing<ClassNode> = new {
+  when (isEmitted(resourceName, attrName)) {
+    new {
+      classHeader {
+        name {
+          value = nestedClassName(resourceName, attrName)
+        }
+        extendsClause {
+          type = referenceableType
+        }
+      }
+
+      properties = renderProperties(typ, pathKey(resourceName, attrName), forProvider, isComputed)
+    }
+
+    for (nestedAttrName, nestedAttr in typ.attributes) {
+      when (nestedAttr.nested_type != null) {
+        ...renderNestedTypeClasses(
+          nestedAttr.nested_type!!,
+          pathKey(resourceName, attrName),
+          nestedAttrName,
+          forProvider,
+          isComputed || nestedAttr.isReadOnly()
+        )
+      } else {
+        ...renderObjectClasses(
+          nestedAttr.type!!,
+          pathKey(resourceName, attrName),
+          nestedAttrName,
+          forProvider,
+          isComputed || nestedAttr.isReadOnly()
+        )
+      }
+    }
+  }
+}
+
+/// The properties of the class, without doc comments.
+///
+/// This is the shape of a class. Classes with the same shape can be the same class.
+function classShape(nestedClass: NestedClass): String =
+  let (
+    properties =
+      if (nestedClass.kind == "object")
+        objectProperties(
+          nestedClass.objectType!!,
+          nestedClass.key,
+          nestedClass.forProvider,
+          nestedClass.isComputed
+        )
+      else
+        renderProperties(
+          nestedClass.container!!,
+          nestedClass.key,
+          nestedClass.forProvider,
+          nestedClass.isComputed
+        )
+  )
+    properties
+      .toList()
+      .map((property) ->
+        property.render("").split("\n").filter((line) -> !line.trim().startsWith("///")).join("\n")
+      )
+      .join("\n")
+
+/// This module, with the class names set to [names].
+local function withClassNames(names: Map<String, String>) = (module) {
+  classNames = names
+}
+
+class ClassLayout {
+  /// The name of the class of every nested object, by the key of its path.
+  names: Map<String, String>
+
+  /// The keys of the paths of the classes that need to be generated.
+  emitted: Set<String>
+}
+
+/// Decides which classes to generate, and what they are named.
+///
+/// Classes with the same shape are the same class: it has the same properties, with the same
+/// types. The first of them is generated, and the others refer to it.
+function computeLayout(allClasses: List<NestedClass>): ClassLayout =
+  // Children come after their parents, so go in reverse. The shape of a class refers to the
+  // identity of the classes of its nested objects.
+  let (
+    identities: Map<String, String> =
+      allClasses
+        .reverse()
+        .fold(Pair(Map(), Map()), (acc, nestedClass) ->
+          let (shape = withClassNames(acc.first).classShape(nestedClass))
+          let (identity = acc.second.getOrNull(shape) ?? "#\(acc.second.length)")
+            Pair(
+              acc.first.put(nestedClass.key, identity),
+              acc.second.put(shape, identity)
+            )
+        )
+        .first
+  )
+  let (
+    unique: List<NestedClass> =
+      allClasses
+        .fold(Pair(Set(), List()), (acc, nestedClass) ->
+          let (identity = identities[nestedClass.key])
+            if (acc.first.contains(identity))
+              acc
+            else
+              Pair(acc.first.add(identity), acc.second + List(nestedClass))
+        )
+        .second
+  )
+  let (uniqueNames = computeClassNames(unique.map((it) -> it.path)))
+  let (
+    namesByIdentity: Map<String, String> =
+      unique.toMap((it) -> identities[it.key], (it) -> uniqueNames[it.key])
+  )
+    new {
+      names = identities.mapValues((_, identity) -> namesByIdentity[identity])
+      emitted = unique.map((it) -> it.key).toSet()
+    }
+
+/// Given `tf.Input<Int>?`, gives `Int`.
+function underlyingType(typeNode: TypeNode) =
+  if (typeNode is TypeNode.NullableTypeNode)
+    (typeNode.typeNode as TypeNode.DeclaredTypeNode).typeArguments[0]
+  else
+    (typeNode as TypeNode.DeclaredTypeNode).typeArguments[0]
+
+/// Whether a property of a resource or data source module has to be renamed.
+///
+/// A module already has a property called `output`, so a property by that name is called `outputs`
+/// instead, and it is renamed back when rendering (see `tf.RenameProperty`).
+///
+/// Only properties of the module are renamed; i.e. not properties of nested classes (which have a
+/// [parentName]), or of the provider.
+local function isRenamed(attrName: String, parentName: String?, forProvider: Boolean): Boolean =
+  attrName == "output" && parentName == null && !forProvider
+
+/// The name of the Pkl property for the attribute or block [attrName].
+local function propertyName(attrName: String, parentName: String?, forProvider: Boolean): String =
+  if (isRenamed(attrName, parentName, forProvider)) "outputs" else attrName
+
+/// `@tf.RenameProperty { to = "<attrName>" }`
+local function renameAnnotation(attrName: String): AnnotationNode = new {
+  identifier = className("tf.RenameProperty")
+  body {
+    renderInline = true
+    members {
+      new ObjectBodyNode.PropertyMemberNode {
+        propertyName { value = "to" }
+        assignment = new ExpressionNode.LiteralValueExpressionNode { value = attrName }
+      }
+    }
+  }
+}
+
+function renderProperties(
+  block: ProvidersSchema.SchemaBlock | ProvidersSchema.SchemaNestedAttributeType,
+  blockName: String?,
+  forProvider: Boolean,
+  // Whether [block] is nested in a read-only attribute (typed as `tf.Computed<...>`).
+  // If so, its properties are plain, non-nullable types.
+  isComputed: Boolean
+): Listing<ClassOrModuleNode.PropertyDefinitionNode> = new {
+  // TODO: add terraform ProvidersSchema.SchemaDescriptionBuilder that converts defaults, validators, exactlyOneOf etc to attribute description
+  // and then parse this description here to add more custom validation to properties
+  // it can be hidden html or https://www.markdownguide.org/hacks/#comments in markdown so it wont pollute generated docs
+  for (attributeName, attribute in block.attributes) {
+    // TODO: figure out we're in root and skip id attribute only there
+    when (attributeName != "id") {
+      new {
+        when (attribute.description != null) {
+          docComment {
+            value = fixComment(attribute.description!!)
+          }
+        }
+
+        name {
+          value = propertyName(attributeName, blockName, forProvider)
+        }
+
+        annotations {
+          when (isSingleList(attribute.nested_type)) {
+            new {
+              identifier = className("tf.Block")
+            }
+          }
+          when (isRenamed(attributeName, blockName, forProvider)) {
+            renameAnnotation(attributeName)
+          }
+        }
+
+        when (!isComputed && attribute.isReadOnly()) {
+          modifiers {
+            "hidden"
+            "fixed"
+          }
+          defaultValue = new ExpressionNode.QualifiedMemberAccessExpressionNode {
+            lhs = new ExpressionNode.MemberAccessExpressionNode {
+              identifier {
+                value = "tf"
+              }
+            }
+            rhs {
+              identifier {
+                value = "computed"
+              }
+              typeArguments {
+                underlyingType(typeAnnotation!!.type)
+              }
+              arguments {
+                new ExpressionNode.BuiltInKeywordExpressionNode { keyword = "this" }
+                new ExpressionNode.LiteralValueExpressionNode { value = attributeName }
+              }
+            }
+          }
+        }
+
+        when (
+          !isComputed && !forProvider && !attribute.isReadOnly() && attribute.nested_type != null
+        ) {
+          defaultValue =
+            nestedDefault(
+              attributeName,
+              attribute.nested_type!!,
+              attribute.optional || isOptionalObject(attribute.nested_type!!),
+              nestedClassName(blockName, attributeName)
+            )
+        }
+
+        typeAnnotation {
+          type =
+            if (isComputed)
+              // The enclosing attribute is already `tf.Computed`; its contents are plain types.
+              if (attribute.type != null)
+                getBasePklType(attribute.type!!, blockName, attributeName)
+              else
+                getNestedType(attribute.nested_type!!, blockName, attributeName)
+            else
+              let (
+                baseType =
+                  if (attribute.type != null)
+                    getPklType(attribute.type!!, blockName, attributeName, attribute, forProvider)
+                  else if (attribute.isReadOnly())
+                    new TypeNode.DeclaredTypeNode {
+                      name = className("tf.Computed")
+                      typeArguments {
+                        getNestedType(attribute.nested_type!!, blockName, attributeName)
+                      }
+                    }
+                  else
+                    getNestedType(attribute.nested_type!!, blockName, attributeName)
+              )
+                if (
+                  attribute.isReadOnly()
+                    || !attribute.optional
+                    || baseType is TypeNode.NullableTypeNode
+                )
+                  baseType
+                else
+                  new TypeNode.NullableTypeNode {
+                    typeNode = baseType
+                  }
+        }
+      }
+    }
+  }
+
+  when (block is ProvidersSchema.SchemaBlock) {
+    for (nestedBlockName, blockAttr in block.block_types) {
+      new {
+        when (blockAttr.block.description != null) {
+          docComment {
+            value = fixComment(blockAttr.block.description!!)
+          }
+        }
+
+        name {
+          value = propertyName(nestedBlockName, blockName, forProvider)
+        }
+
+        annotations {
+          when (isSingleList(blockAttr)) {
+            new {
+              identifier = className("tf.Block")
+            }
+          }
+          when (isRenamed(nestedBlockName, blockName, forProvider)) {
+            renameAnnotation(nestedBlockName)
+          }
+        }
+
+        when (!isComputed && !forProvider) {
+          defaultValue =
+            nestedDefault(
+              nestedBlockName,
+              blockAttr,
+              isOptionalObject(blockAttr),
+              nestedClassName(blockName, nestedBlockName)
+            )
+        }
+
+        typeAnnotation {
+          type = getNestedType(blockAttr, blockName, nestedBlockName)
+        }
+      }
+    }
+  }
+}
+
+local function identifier(id: String): ExpressionNode.MemberAccessExpressionNode = new {
+  identifier { value = id }
+}
+
+local function keyword(kw: "this" | "outer"): ExpressionNode.BuiltInKeywordExpressionNode = new {
+  keyword = kw
+}
+
+local function literal(v: String | Int): ExpressionNode.LiteralValueExpressionNode = new {
+  value = v
+}
+
+/// `let (self = this) <body>`
+local class LetSelfExpressionNode extends ExpressionNode {
+  body: ExpressionNode
+
+  function render(currentIndent: String) = "let (self = this) \(body.render(currentIndent))"
+}
+
+/// `<receiver>.<propName>`
+local function access(
+  receiver: ExpressionNode,
+  propName: String
+): ExpressionNode.QualifiedMemberAccessExpressionNode = new {
+  lhs = receiver
+  rhs = identifier(propName)
+}
+
+/// `$path = (<parentRef>.$path.toList() + List(<path elements>)).toListing()`
+///
+/// The path of a nested object is the path of the object that has it, and the path to the nested
+/// object within it.
+local function pathMember(
+  parentRef: ExpressionNode,
+  pathElements: List<ExpressionNode>
+): ObjectBodyNode.PropertyMemberNode = new {
+  propertyName { value = "$path" }
+  assignment = new ExpressionNode.QualifiedMemberAccessExpressionNode {
+    lhs = new ExpressionNode.BinaryOperatorExpressionNode {
+      lhs = new ExpressionNode.QualifiedMemberAccessExpressionNode {
+        lhs = access(parentRef, "$path")
+        rhs {
+          identifier { value = "toList" }
+          arguments {}
+        }
+      }
+      operator = operators.PLUS
+      rhs = new ExpressionNode.MemberAccessExpressionNode {
+        identifier { value = "List" }
+        arguments {
+          ...pathElements
+        }
+      }
+    }
+    rhs {
+      identifier { value = "toListing" }
+      arguments {}
+    }
+  }
+}
+
+/// The default value of a property that holds nested objects, which fills in their `$path`.
+///
+/// Objects are amended on top of this default, so that they know the path to the property.
+///
+/// * A single object is `new { $path = (outer.$path.toList() + List("foo")).toListing() }`. If it is
+///   a block, the path also has the index `0`, because it is rendered as an array of one element.
+/// * A `Listing` or `Mapping` has a default for its elements, which adds the index or key to the
+///   path.
+/// * If the property is nullable, the default is wrapped in `Null(...)`. The property is `null`
+///   unless it is amended, in which case the amended object is on top of the default.
+///
+/// The type of the object is inferred from the property, except for the argument of `Null(...)`,
+/// which has to name it (e.g. `new Foo { ... }`).
+local function nestedDefault(
+  attrName: String,
+  nested: ProvidersSchema.SchemaBlockType | ProvidersSchema.SchemaNestedAttributeType,
+  isNullable: Boolean,
+  nestedClass: String
+): ExpressionNode =
+  let (classType = new TypeNode.DeclaredTypeNode { name = className(nestedClass) })
+  let (
+    defaultExpr =
+      if (nested.nesting_mode == "single" || isSingleList(nested))
+        new ExpressionNode.ObjectExpressionNode {
+          type = if (isNullable) classType else null
+          body {
+            // noinspection TypeMismatch
+            members {
+              pathMember(
+                keyword("outer"),
+                List(literal(attrName), if (isSingleList(nested)) literal(0) else null)
+                  .filterNonNull()
+              )
+            }
+          }
+        }
+      else
+        // The elements are nested too deep to reach the object using `outer`.
+        new LetSelfExpressionNode {
+          body = new ExpressionNode.ObjectExpressionNode {
+            type =
+              if (!isNullable)
+                null
+              else if (nested.nesting_mode == "map")
+                new TypeNode.DeclaredTypeNode {
+                  name = className("Mapping")
+                  typeArguments {
+                    new TypeNode.DeclaredTypeNode { name = className("String") }
+                    classType
+                  }
+                }
+              else
+                new TypeNode.DeclaredTypeNode {
+                  name = className("Listing")
+                  typeArguments { classType }
+                }
+            body {
+              members {
+                new ObjectBodyNode.PropertyMemberNode {
+                  propertyName { value = "default" }
+                  body {
+                    parameters {
+                      new { name { value = "key" } }
+                    }
+                    members {
+                      pathMember(identifier("self"), List(literal(attrName), identifier("key")))
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+  )
+    if (isNullable)
+      new ExpressionNode.MemberAccessExpressionNode {
+        identifier { value = "Null" }
+        arguments { defaultExpr }
+      }
+    else
+      defaultExpr
+
+/// A list that holds at most one element, which is treated as a single object.
+///
+/// In HCL, these are written as a (repeatable) block; in JSON, they are rendered as an array of
+/// one element (see `@tf.Block`).
+const function isSingleList(
+  attribute: ProvidersSchema.SchemaBlockType? | ProvidersSchema.SchemaNestedAttributeType?
+) =
+  if (attribute == null)
+    false
+  else
+    attribute.nesting_mode == "list"
+      && attribute.max_items == 1
+      && (attribute.min_items == 1 || attribute.min_items == null)
+
+/// Whether a single object (see [isSingleList()]) is optional, and is thus nullable.
+const function isOptionalObject(
+  nested: ProvidersSchema.SchemaBlockType | ProvidersSchema.SchemaNestedAttributeType
+): Boolean = nested.min_items == null && (nested.nesting_mode == "single" || isSingleList(nested))
+
+function getNestedType(
+  attribute: ProvidersSchema.SchemaBlockType | ProvidersSchema.SchemaNestedAttributeType,
+  resourceName: String?,
+  attrName: String
+): TypeNode =
+  // TODO: how to better disambiguate resources from nested block names?
+  // For example if we have iam_binding with condition parameter and iam_binding_condition resource
+  let (className = className(nestedClassName(resourceName, attrName)))
+  let (isExactlyOne = isSingleList(attribute))
+  let (
+    typ =
+      new Mapping<ProvidersSchema.SchemaNestingMode, TypeNode.DeclaredTypeNode> {
+        ["list"] = this["set"]
+        ["set"] {
+          name = className("Listing")
+          typeArguments {
+            new TypeNode.DeclaredTypeNode {
+              name = className
+            }
+          }
+        }
+        ["single"] {
+          name = className
+        }
+        ["map"] {
+          name = className("Mapping")
+          typeArguments {
+            new TypeNode.DeclaredTypeNode {
+              name = className("String")
+            }
+            new TypeNode.DeclaredTypeNode {
+              name = className
+            }
+          }
+        }
+        // TODO: need to find providers that use group type to see how it will be presented in terraform JSON config.
+        // ["group"] {}
+      }.getOrNull(if (isExactlyOne) "single" else attribute.nesting_mode)
+        ?? throw(
+          "Unsupported nesting mode \(attribute.nesting_mode) for \(resourceName)\(camelCase(attrName))"
+        )
+  )
+    // if this is a list that allows only one element, just unwrap it.
+    // In HCL, nested blocks are repeatable groups.
+    if (isExactlyOne)
+      if (attribute.min_items == null)
+        new TypeNode.NullableTypeNode {
+          typeNode = typ
+        }
+      else
+        typ
+    else if (
+      attribute.nesting_mode == "set"
+        || attribute.nesting_mode is "map" | "list"
+          && (attribute.min_items != null || attribute.max_items != null)
+    )
+      new TypeNode.ConstrainedTypeNode {
+        typeNode = typ
+        constraints {
+          when (attribute.nesting_mode == "set") {
+            new ExpressionNode.MemberAccessExpressionNode {
+              identifier {
+                value = "isDistinct"
+              }
+            }
+          }
+          when (attribute.min_items != null) {
+            new ExpressionNode.BinaryOperatorExpressionNode {
+              lhs = new ExpressionNode.MemberAccessExpressionNode {
+                identifier {
+                  value = "length"
+                }
+              }
+
+              operator = operators.GREATER_THAN_OR_EQUALS
+
+              rhs = new ExpressionNode.LiteralValueExpressionNode {
+                value = attribute.min_items
+              }
+            }
+          }
+          when (attribute.max_items != null) {
+            new ExpressionNode.BinaryOperatorExpressionNode {
+              lhs = new ExpressionNode.MemberAccessExpressionNode {
+                identifier {
+                  value = "length"
+                }
+              }
+
+              operator = operators.LESS_THAN_OR_EQUALS
+
+              rhs = new ExpressionNode.LiteralValueExpressionNode {
+                value = attribute.max_items
+              }
+            }
+          }
+        }
+      }
+    else if (attribute.nesting_mode == "single" && attribute.min_items == null)
+      new TypeNode.NullableTypeNode {
+        typeNode = typ
+      }
+    else
+      typ
+
+function getBasePklType(
+  typ: ProvidersSchema.AttributeType,
+  blockName: String?,
+  attributeName: String
+): TypeNode =
+  let (
+    mappedType = new Mapping<tf.PrimitiveType | tf.Constructor | ProvidersSchema.Dynamic, TypeNode> {
+      // primitive types
+      ["string"] = new TypeNode.DeclaredTypeNode {
+        name = className("String")
+      }
+      ["number"] = new TypeNode.DeclaredTypeNode {
+        name = className("Number")
+      }
+      ["bool"] = new TypeNode.DeclaredTypeNode {
+        name = className("Boolean")
+      }
+
+      // dynamic type
+      ["dynamic"] = new TypeNode.DeclaredTypeNode {
+        name = className("Dynamic")
+      }
+
+      // aggregate types
+      ["list"] = new TypeNode.DeclaredTypeNode {
+        name = className("Listing")
+        typeArguments {
+          getBasePklType(typ[1], blockName, attributeName)
+        }
+      }
+      ["set"] = new TypeNode.ConstrainedTypeNode {
+        typeNode = new TypeNode.DeclaredTypeNode {
+          name = className("Listing")
+          typeArguments {
+            getBasePklType(typ[1], blockName, attributeName)
+          }
+        }
+        constraints {
+          new ExpressionNode.MemberAccessExpressionNode {
+            identifier {
+              value = "isDistinct"
+            }
+          }
+        }
+      }
+      ["map"] = new TypeNode.DeclaredTypeNode {
+        name = className("Mapping")
+        typeArguments {
+          new TypeNode.DeclaredTypeNode {
+            name = className("String")
+          }
+          getBasePklType(typ[1], blockName, attributeName)
+        }
+      }
+      ["object"] = new TypeNode.DeclaredTypeNode {
+        // TODO: how do we name classes for nested objects
+        // cdk seems to prefix them with main resource name, like
+        // InstanceLaunchTemplate for launch_template property on aws_instance https://github.com/cdktf/cdktf-provider-aws/blob/main/docs/instance.typescript.md#@cdktf/provider-aws.instance.Instance.property.launchTemplateInput
+        // or DataAwsAmiBlockDeviceMappings for block_device_mappings in data_aws_ami
+        name = className(nestedClassName(blockName, attributeName))
+      }
+    }
+  )
+    mappedType.getOrNull(typ)
+      ?? if (typ is ProvidersSchema.AggregateType || typ is ProvidersSchema.ObjectType)
+        mappedType.getOrNull(typ[0]) ?? throw("Unsupported aggregate type \(typ)")
+      else
+        throw("Unsupported type \(typ)")
+
+function getPklType(
+  typ: ProvidersSchema.AttributeType,
+  blockName: String?,
+  attributeName: String,
+  attribute: ProvidersSchema.SchemaAttribute?,
+  forProvider: Boolean
+): TypeNode =
+  let (baseType = getBasePklType(typ, blockName, attributeName))
+    if (attribute?.isReadOnly() == true)
+      new TypeNode.DeclaredTypeNode {
+        name = className("tf.Computed")
+        typeArguments { baseType }
+      }
+    else
+      new TypeNode.DeclaredTypeNode {
+        name = if (forProvider) className("tf.ProviderInput") else className("tf.Input")
+        typeArguments { baseType }
+      }
+
+function className(name: String): QualifiedIdentifierNode = new {
+  parts {
+    for (part in name.split(".")) {
+      new { value = part }
+    }
+  }
+}
+
+function fixComment(comment: String): String =
+  let (trimmed = comment.trim())
+    if (!trimmed.endsWith(".")) trimmed + "." else trimmed
+
+function formatPkl(code: String) =
+  let (parsed = new syntax.Parser {}.parseModule(code))
+    new syntax.FormattingRenderer {}.renderValue(parsed)

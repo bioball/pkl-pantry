@@ -1,0 +1,98 @@
+//===----------------------------------------------------------------------===//
+// Copyright © 2026 Apple Inc. and the Pkl project authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//===----------------------------------------------------------------------===//
+/// Initialize Pkl schemas for the current Terraform/OpenTofu project.
+///
+/// ## Prerequisites
+///
+/// * Terraform config folder with correct configuration that has at least this:
+///   * `terraform.required_providers` config for your provider.
+///   * empty `provider "providername" {}` block
+/// * Run `terraform init`/`tofu init` to fetch provider binaries.
+///
+/// ## Running the generator
+///
+/// ```
+/// terraform providers schema -json | pkl run package://pkg.pkl-lang.org/tf.codegen@1.0.0#/init.pkl
+/// ```
+///
+/// ## Limitations
+///
+///  * Terraform schema for attributes using `SchemaConfigModeAttr` is limited, does not provide proper constraints,
+///    all fields will be marked as optional.
+module tf.init.init
+
+extends "pkl:Command"
+
+import "pkl:json"
+
+import "BaseGen.pkl"
+import "MappingsGen.pkl"
+import "ProviderSchemaGen.pkl"
+import "ProvidersGen.pkl"
+import "ProvidersSchema.pkl"
+
+options: Options
+
+class Options {
+  /// Convert and generate only selected resource.
+  @Flag { metavar = "resource" }
+  resource: Listing<String>
+
+  /// TF provider schema json.
+  ///
+  /// Defaults to reading it from STDIN.
+  input: String(!isBlank) = read("file:/dev/stdin").text
+}
+
+parsed: Mapping = new json.Parser { useMapping = true }.parse(options.input) as Mapping
+
+converted: ProvidersSchema = ProvidersSchema.convert(parsed)
+
+pwd = read("env:PWD")
+
+local providerGens: Listing<ProviderSchemaGen> = new {
+  for (providerName, provider in converted.provider_schemas) {
+    new {
+      fqdn = providerName
+      providerSchema = provider
+      selectResources = module.options.resource.toList()
+    }
+  }
+}
+
+local baseGen: BaseGen = new { providers = providerGens }
+
+local providersGen: ProvidersGen = new { providers = providerGens }
+
+local mappingGens: Listing<MappingsGen> = new {
+  for (_kind in List("resource", "ephemeral", "data")) {
+    new { providers = providerGens; kind = _kind }
+  }
+}
+
+output {
+  text = ""
+  files {
+    for (gen in providerGens) {
+      ...gen.files
+    }
+    ["providers/base.pkl"] = baseGen.output
+    [providersGen.moduleOutputPath] = providersGen.output
+    for (gen in mappingGens) {
+      [gen.moduleOutputPath] = gen.output
+    }
+  }
+}

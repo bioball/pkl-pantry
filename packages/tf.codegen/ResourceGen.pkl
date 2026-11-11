@@ -1,0 +1,155 @@
+//===----------------------------------------------------------------------===//
+// Copyright © 2026 Apple Inc. and the Pkl project authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//===----------------------------------------------------------------------===//
+module tf.codegen.ResourceGen
+
+import "@pkl.experimental.syntax/ModuleNode.pkl"
+import "@pkl.experimental.syntax/TypeNode.pkl"
+
+import "ProvidersSchema.pkl"
+import "util.pkl"
+
+/// The TF resource name; e.g. "aws_s3_bucket"
+resourceName: String
+
+/// The schema definition for this resource
+resource: ProvidersSchema.Schema
+
+/// The prefix to add to the module name
+modulePrefix: String
+
+/// The prefix for this file's output
+filePrefix: String
+
+/// The name of the provider
+providerName: String
+
+ephemeral: Boolean
+
+/// The classes of the nested objects of this module, and their names.
+local layout = util.computeLayout(util.classes(resource.block, false))
+
+/// [util], with the names of the classes of this module.
+local u = (util) {
+  classNames = layout.names
+  emittedClasses = layout.emitted
+}
+
+fixed pklName: String = util.convertResourceName(resourceName, providerName)
+
+fixed resourceModule: ModuleNode = new {
+  declaration {
+    docComment {
+      when (resource.block.description != null) {
+        value = util.fixComment(resource.block.description!!)
+      } else {
+        value = "Resource \(resourceName) from terraform-provider-\(providerName)."
+      }
+    }
+    moduleHeader {
+      name =
+        if (ephemeral)
+          util.className("\(modulePrefix).ephemeral.\(pklName)")
+        else
+          util.className("\(modulePrefix).resource.\(pklName)")
+      moduleExtendsOrAmendsClause {
+        type = "extends"
+        extendedModule = "@tf/Resource.pkl"
+      }
+    }
+  }
+
+  imports {
+    new {
+      value = "@tf/tf.pkl"
+    }
+    // only the classes of nested objects need it
+    when (!layout.emitted.isEmpty) {
+      new {
+        value = "@tf/Referenceable.pkl"
+      }
+    }
+  }
+
+  properties = u.renderProperties(resource.block, null, false, false)
+
+  classes {
+    for (attributeName, attribute in resource.block.attributes) {
+      when (attribute.type != null) {
+        ...u.renderObjectClasses(
+          attribute.type!!,
+          null,
+          attributeName,
+          false,
+          attribute.isReadOnly()
+        )
+      } else {
+        ...u.renderNestedTypeClasses(
+          attribute.nested_type!!,
+          null,
+          attributeName,
+          false,
+          attribute.isReadOnly()
+        )
+      }
+    }
+
+    for (nestedBlockName, nestedBlock in resource.block.block_types) {
+      ...u.renderBlockClasses(
+        nestedBlock,
+        null,
+        nestedBlockName,
+        false
+      )
+    }
+  }
+}
+
+fixed moduleOutputPath: String =
+  if (ephemeral)
+    "\(filePrefix)/ephemeral/\(pklName).pkl"
+  else
+    "\(filePrefix)/resources/\(pklName).pkl"
+
+fixed relativeModuleOutputPath: String =
+  if (ephemeral)
+    "\(filePrefix)/ephemeral/\(pklName).pkl"
+  else
+    "\(filePrefix)/resources/\(pklName).pkl"
+
+local kindProperty: ModuleNode.PropertyDefinitionNode = new {
+  docComment {
+    value =
+      """
+      The string that identifies the kind of this value.
+
+      This is an internal field.
+      """
+  }
+  name { value = "$kind" }
+  modifiers { "hidden"; "const" }
+  typeAnnotation {
+    type = new TypeNode.StringLiteralTypeNode {
+      value = resourceName
+    }
+  }
+}
+
+output {
+  text =
+    util.formatPkl(
+      List(resourceModule.output.text, kindProperty.render("")).filterNonNull().join("\n\n")
+    )
+}

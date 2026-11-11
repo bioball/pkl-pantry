@@ -40,7 +40,6 @@ class ClassHeader extends Node {
         modifiers?.join(" ")
         "class \(name.render(currentIndent))"
         extendsClause?.render(currentIndent)
-        "{"
       }
         .toList()
         .filterNonNull()
@@ -54,12 +53,14 @@ class ClassExtendsClause extends Node {
 }
 
 function render(currentIndent: String) =
-  List(
-    docComment?.render(currentIndent),
-    annotations?.toList()?.map((a) -> a.render(currentIndent))?.join("\n"),
-    classHeader.render(currentIndent),
-    super.render(currentIndent + indent),
-    "\(currentIndent)}"
-  )
-    .filterNonNull()
-    .join("\n")
+  let (hasMembers = properties?.isNotEmpty == true || methods?.isNotEmpty == true)
+    List(
+      docComment?.render(currentIndent),
+      annotations?.toList()?.map((a) -> a.render(currentIndent))?.join("\n"),
+      classHeader.render(currentIndent),
+      if (hasMembers) "{" else null,
+      if (hasMembers) super.render(currentIndent + indent) else null,
+      if (hasMembers) "\(currentIndent)}" else null
+    )
+      .filterNonNull()
+      .join("\n")
