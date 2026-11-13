@@ -1,0 +1,31 @@
+/// Resource hcloud_volume from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.resource.Volume
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+automount: tf.Input<Boolean>?
+
+delete_protection: tf.Input<Boolean>?
+
+format: tf.Input<String>?
+
+id: tf.Input<String>?
+
+labels: tf.InputMapping<String, String>?
+
+hidden fixed linux_device: tf.Computed<String> = tf.computed<String>(this, "linux_device")
+
+location: tf.Input<String>?
+
+name: tf.Input<String>
+
+server_id: tf.Input<Number>?
+
+size: tf.Input<Number>
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_volume"

@@ -1,0 +1,69 @@
+/// Provides details about a Hetzner Cloud Zone.
+///
+/// For Internationalized domain names (IDN), see the `provider::hcloud::idna` function.
+///
+/// See the [Zones API documentation](https://docs.hetzner.cloud/reference/cloud#zones) for more details.
+module providers.hetznercloud.hcloud.data.Zone
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+/// Authoritative nameservers of the Zone.
+hidden fixed authoritative_nameservers: tf.Computed<AuthoritativeNameservers?> =
+  tf.computed<AuthoritativeNameservers?>(this, "authoritative_nameservers")
+
+/// Whether delete protection is enabled.
+hidden fixed delete_protection: tf.Computed<Boolean> =
+  tf.computed<Boolean>(this, "delete_protection")
+
+/// ID of the Zone.
+id: tf.Input<Number>?
+
+/// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+hidden fixed labels: tf.Computed<Mapping<String, String>> =
+  tf.computed<Mapping<String, String>>(this, "labels")
+
+/// Mode of the Zone.
+hidden fixed mode: tf.Computed<String> = tf.computed<String>(this, "mode")
+
+/// Name of the Zone.
+name: tf.Input<String>?
+
+/// Primary nameservers of the Zone.
+hidden fixed primary_nameservers: tf.Computed<Listing<PrimaryNameservers>> =
+  tf.computed<Listing<PrimaryNameservers>>(this, "primary_nameservers")
+
+/// Registrar of the Zone.
+hidden fixed registrar: tf.Computed<String> = tf.computed<String>(this, "registrar")
+
+/// Default Time To Live (TTL) of the Zone.
+hidden fixed ttl: tf.Computed<Number> = tf.computed<Number>(this, "ttl")
+
+/// Filter results using a [Label Selector](https://docs.hetzner.cloud/reference/cloud#label-selector).
+with_selector: tf.Input<String>?
+
+class AuthoritativeNameservers extends Referenceable {
+  /// Authoritative Hetzner nameservers assigned to the Zone.
+  assigned: Listing<String>
+}
+
+class PrimaryNameservers extends Referenceable {
+  /// Public IPv4 or IPv6 address of the primary nameserver.
+  address: String
+
+  /// Port of the primary nameserver.
+  port: Number
+
+  /// Transaction signature (TSIG) algorithm used to generate the TSIG key.
+  tsig_algorithm: String
+
+  /// Transaction signature (TSIG) key.
+  tsig_key: String
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_zone"

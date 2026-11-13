@@ -1,0 +1,38 @@
+/// Data source hcloud_volumes from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.data.Volumes
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+id: tf.Input<String>?
+
+hidden fixed volumes: tf.Computed<Listing<Volumes>> = tf.computed<Listing<Volumes>>(this, "volumes")
+
+with_selector: tf.Input<String>?
+
+with_status: tf.InputListing<String>?
+
+class Volumes extends Referenceable {
+  delete_protection: Boolean
+
+  id: Number
+
+  labels: Mapping<String, String>
+
+  linux_device: String
+
+  location: String
+
+  name: String
+
+  server_id: Number
+
+  size: Number
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_volumes"

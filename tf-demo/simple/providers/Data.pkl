@@ -1,0 +1,277 @@
+module providers.Data
+
+import "@tf/tf.pkl"
+
+import "hetznercloud/hcloud/data/Certificate.pkl"
+import "hetznercloud/hcloud/data/Certificates.pkl"
+import "hetznercloud/hcloud/data/Datacenter.pkl"
+import "hetznercloud/hcloud/data/Datacenters.pkl"
+import "hetznercloud/hcloud/data/Firewall.pkl"
+import "hetznercloud/hcloud/data/Firewalls.pkl"
+import "hetznercloud/hcloud/data/FloatingIp.pkl"
+import "hetznercloud/hcloud/data/FloatingIps.pkl"
+import "hetznercloud/hcloud/data/Image.pkl"
+import "hetznercloud/hcloud/data/Images.pkl"
+import "hetznercloud/hcloud/data/LoadBalancer.pkl"
+import "hetznercloud/hcloud/data/LoadBalancers.pkl"
+import "hetznercloud/hcloud/data/LoadBalancerType.pkl"
+import "hetznercloud/hcloud/data/LoadBalancerTypes.pkl"
+import "hetznercloud/hcloud/data/Location.pkl"
+import "hetznercloud/hcloud/data/Locations.pkl"
+import "hetznercloud/hcloud/data/Network.pkl"
+import "hetznercloud/hcloud/data/NetworkMembers.pkl"
+import "hetznercloud/hcloud/data/Networks.pkl"
+import "hetznercloud/hcloud/data/PlacementGroup.pkl"
+import "hetznercloud/hcloud/data/PlacementGroups.pkl"
+import "hetznercloud/hcloud/data/PrimaryIp.pkl"
+import "hetznercloud/hcloud/data/PrimaryIps.pkl"
+import "hetznercloud/hcloud/data/Server.pkl"
+import "hetznercloud/hcloud/data/Servers.pkl"
+import "hetznercloud/hcloud/data/ServerType.pkl"
+import "hetznercloud/hcloud/data/ServerTypes.pkl"
+import "hetznercloud/hcloud/data/SshKey.pkl"
+import "hetznercloud/hcloud/data/SshKeys.pkl"
+import "hetznercloud/hcloud/data/StorageBox.pkl"
+import "hetznercloud/hcloud/data/StorageBoxes.pkl"
+import "hetznercloud/hcloud/data/StorageBoxSnapshot.pkl"
+import "hetznercloud/hcloud/data/StorageBoxSnapshots.pkl"
+import "hetznercloud/hcloud/data/StorageBoxSubaccount.pkl"
+import "hetznercloud/hcloud/data/StorageBoxSubaccounts.pkl"
+import "hetznercloud/hcloud/data/StorageBoxType.pkl"
+import "hetznercloud/hcloud/data/StorageBoxTypes.pkl"
+import "hetznercloud/hcloud/data/Volume.pkl"
+import "hetznercloud/hcloud/data/Volumes.pkl"
+import "hetznercloud/hcloud/data/Zone.pkl"
+import "hetznercloud/hcloud/data/ZoneRrset.pkl"
+import "hetznercloud/hcloud/data/ZoneRrsets.pkl"
+import "hetznercloud/hcloud/data/Zones.pkl"
+
+hcloud_certificate: Mapping<tf.Identifier, Certificate> = tf.resourceMapping<Certificate>()
+
+hcloud_certificates: Mapping<tf.Identifier, Certificates> = tf.resourceMapping<Certificates>()
+
+/// Provides details about a specific Hetzner Cloud Datacenter.
+///
+/// Use this resource to get detailed information about a specific Datacenter.
+///
+/// !> The `hcloud_datacenter` data source is deprecated, and will be removed after 1 Oct. 2026.
+/// After this date, requests to the datacenters API endpoints will return `HTTP 410 Gone`.
+/// Please use the `hcloud_location` data source instead.
+/// See the [changelog](https://docs.hetzner.cloud/changelog#2026-06-02-datacenters-deprecated) for more details.
+hcloud_datacenter: Mapping<tf.Identifier, Datacenter> = tf.resourceMapping<Datacenter>()
+
+/// Provides a list of available Hetzner Cloud Datacenters.
+///
+/// This resource may be useful to create highly available infrastructure, distributed across several Datacenters.
+///
+/// !> The `hcloud_datacenters` data source is deprecated, and will be removed after 1 Oct. 2026.
+/// After this date, requests to the datacenters API endpoints will return `HTTP 410 Gone`.
+/// Please use the `hcloud_locations` data source instead.
+/// See the [changelog](https://docs.hetzner.cloud/changelog#2026-06-02-datacenters-deprecated) for more details.
+hcloud_datacenters: Mapping<tf.Identifier, Datacenters> = tf.resourceMapping<Datacenters>()
+
+hcloud_firewall: Mapping<tf.Identifier, Firewall> = tf.resourceMapping<Firewall>()
+
+hcloud_firewalls: Mapping<tf.Identifier, Firewalls> = tf.resourceMapping<Firewalls>()
+
+hcloud_floating_ip: Mapping<tf.Identifier, FloatingIp> = tf.resourceMapping<FloatingIp>()
+
+hcloud_floating_ips: Mapping<tf.Identifier, FloatingIps> = tf.resourceMapping<FloatingIps>()
+
+///
+/// Provides details about a Hetzner Cloud Image.
+///
+/// It is recommended to always provide the image architecture (using ''with_architecture'').
+///
+/// See the [Image API documentation](https://docs.hetzner.cloud/reference/cloud#images) for more details.
+hcloud_image: Mapping<tf.Identifier, Image> = tf.resourceMapping<Image>()
+
+///
+/// Provides a list of Hetzner Storage Images.
+///
+/// It is recommended to always provide the image architecture (using ''with_architecture'').
+///
+/// See the [Image API documentation](https://docs.hetzner.cloud/reference/cloud#images) for more details.
+hcloud_images: Mapping<tf.Identifier, Images> = tf.resourceMapping<Images>()
+
+hcloud_load_balancer: Mapping<tf.Identifier, LoadBalancer> = tf.resourceMapping<LoadBalancer>()
+
+///
+/// Provides details about a specific Hetzner Cloud Load Balancer Type.
+///
+/// Use this resource to get detailed information about a specific Load Balancer Type.
+hcloud_load_balancer_type: Mapping<tf.Identifier, LoadBalancerType> =
+  tf.resourceMapping<LoadBalancerType>()
+
+///
+/// Provides a list of available Hetzner Cloud Load Balancer Types.
+hcloud_load_balancer_types: Mapping<tf.Identifier, LoadBalancerTypes> =
+  tf.resourceMapping<LoadBalancerTypes>()
+
+hcloud_load_balancers: Mapping<tf.Identifier, LoadBalancers> = tf.resourceMapping<LoadBalancers>()
+
+///
+/// Provides details about a specific Hetzner Cloud Location.
+///
+/// Use this resource to get detailed information about a specific Location.
+hcloud_location: Mapping<tf.Identifier, Location> = tf.resourceMapping<Location>()
+
+///
+/// Provides a list of available Hetzner Cloud Locations.
+///
+/// This resource may be useful to create highly available infrastructure, distributed across several locations.
+hcloud_locations: Mapping<tf.Identifier, Locations> = tf.resourceMapping<Locations>()
+
+hcloud_network: Mapping<tf.Identifier, Network> = tf.resourceMapping<Network>()
+
+/// Provides a list of Hetzner Cloud Network Members.
+///
+/// See the [Networks API documentation](https://docs.hetzner.cloud/reference/cloud#tag/networks) for more details.
+hcloud_network_members: Mapping<tf.Identifier, NetworkMembers> =
+  tf.resourceMapping<NetworkMembers>()
+
+hcloud_networks: Mapping<tf.Identifier, Networks> = tf.resourceMapping<Networks>()
+
+hcloud_placement_group: Mapping<tf.Identifier, PlacementGroup> =
+  tf.resourceMapping<PlacementGroup>()
+
+hcloud_placement_groups: Mapping<tf.Identifier, PlacementGroups> =
+  tf.resourceMapping<PlacementGroups>()
+
+/// Provides details about a Hetzner Cloud Primary IP.
+///
+/// See the [Primary IPs API documentation](https://docs.hetzner.cloud/reference/cloud#tag/primary-ips) for more details.
+///
+/// ## Deprecations
+///
+/// ### `datacenter` attribute
+///
+/// The `datacenter` attribute is marked for removal since `v1.67.0`, you must use the `location` attribute instead.
+///
+/// See our [deprecation](https://docs.hetzner.cloud/changelog#2025-12-16-phasing-out-datacenters) and
+/// [removal](https://docs.hetzner.cloud/changelog#2026-07-01-removing-datacenters) changelog for more details.
+hcloud_primary_ip: Mapping<tf.Identifier, PrimaryIp> = tf.resourceMapping<PrimaryIp>()
+
+/// Provides a list of Hetzner Cloud Primary IPs.
+///
+/// See the [Primary IPs API documentation](https://docs.hetzner.cloud/reference/cloud#tag/primary-ips) for more details.
+///
+/// ## Deprecations
+///
+/// ### `datacenter` attribute
+///
+/// The `datacenter` attribute is marked for removal since `v1.67.0`, you must use the `location` attribute instead.
+///
+/// See our [deprecation](https://docs.hetzner.cloud/changelog#2025-12-16-phasing-out-datacenters) and
+/// [removal](https://docs.hetzner.cloud/changelog#2026-07-01-removing-datacenters) changelog for more details.
+hcloud_primary_ips: Mapping<tf.Identifier, PrimaryIps> = tf.resourceMapping<PrimaryIps>()
+
+hcloud_server: Mapping<tf.Identifier, Server> = tf.resourceMapping<Server>()
+
+///
+/// Provides details about a specific Hetzner Cloud Server Type.
+///
+/// Use this resource to get detailed information about specific Server Type.
+hcloud_server_type: Mapping<tf.Identifier, ServerType> = tf.resourceMapping<ServerType>()
+
+///
+/// Provides a list of available Hetzner Cloud Server Types.
+hcloud_server_types: Mapping<tf.Identifier, ServerTypes> = tf.resourceMapping<ServerTypes>()
+
+hcloud_servers: Mapping<tf.Identifier, Servers> = tf.resourceMapping<Servers>()
+
+///
+/// Provides details about a specific Hetzner Cloud SSH Key.
+///
+/// This resource is useful if you want to use a non-terraform managed SSH Key.
+hcloud_ssh_key: Mapping<tf.Identifier, SshKey> = tf.resourceMapping<SshKey>()
+
+///
+/// Provides a list of Hetzner Cloud SSH Keys.
+///
+/// This resource is useful if you want to use a non-terraform managed SSH Key.
+hcloud_ssh_keys: Mapping<tf.Identifier, SshKeys> = tf.resourceMapping<SshKeys>()
+
+///
+/// Provides details about a Hetzner Storage Box.
+///
+/// See the [Storage Boxes API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-boxes) for more details.
+hcloud_storage_box: Mapping<tf.Identifier, StorageBox> = tf.resourceMapping<StorageBox>()
+
+///
+/// Provides details about a Hetzner Storage Box Snapshot.
+///
+/// See the [Storage Box Snapshots API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-box-snapshots) for more details.
+hcloud_storage_box_snapshot: Mapping<tf.Identifier, StorageBoxSnapshot> =
+  tf.resourceMapping<StorageBoxSnapshot>()
+
+///
+/// Provides a list of Hetzner Storage Box Snapshots.
+///
+/// See the [Storage Box Snapshots API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-box-snapshots) for more details.
+hcloud_storage_box_snapshots: Mapping<tf.Identifier, StorageBoxSnapshots> =
+  tf.resourceMapping<StorageBoxSnapshots>()
+
+///
+/// Provides details about a Hetzner Storage Box Subaccount.
+///
+/// See the [Storage Box Subaccounts API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-box-subaccounts) for more details.
+hcloud_storage_box_subaccount: Mapping<tf.Identifier, StorageBoxSubaccount> =
+  tf.resourceMapping<StorageBoxSubaccount>()
+
+///
+/// Provides a list of Hetzner Storage Box Subaccounts.
+///
+/// See the [Storage Box Subaccounts API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-box-subaccounts) for more details.
+hcloud_storage_box_subaccounts: Mapping<tf.Identifier, StorageBoxSubaccounts> =
+  tf.resourceMapping<StorageBoxSubaccounts>()
+
+///
+/// Provides details about a Hetzner Storage Box Type.
+///
+/// See the [Storage Box Type API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-box-types) for more details.
+hcloud_storage_box_type: Mapping<tf.Identifier, StorageBoxType> =
+  tf.resourceMapping<StorageBoxType>()
+
+///
+/// Provides a list of Hetzner Storage Box Types.
+///
+/// See the [Storage Box Type API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-box-types) for more details.
+hcloud_storage_box_types: Mapping<tf.Identifier, StorageBoxTypes> =
+  tf.resourceMapping<StorageBoxTypes>()
+
+///
+/// Provides a list of Hetzner Storage Boxes.
+///
+/// See the [Storage Boxes API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-boxes) for more details.
+hcloud_storage_boxes: Mapping<tf.Identifier, StorageBoxes> = tf.resourceMapping<StorageBoxes>()
+
+hcloud_volume: Mapping<tf.Identifier, Volume> = tf.resourceMapping<Volume>()
+
+hcloud_volumes: Mapping<tf.Identifier, Volumes> = tf.resourceMapping<Volumes>()
+
+///
+/// Provides details about a Hetzner Cloud Zone.
+///
+/// For Internationalized domain names (IDN), see the `provider::hcloud::idna` function.
+///
+/// See the [Zones API documentation](https://docs.hetzner.cloud/reference/cloud#zones) for more details.
+hcloud_zone: Mapping<tf.Identifier, Zone> = tf.resourceMapping<Zone>()
+
+///
+/// Provides details about a Hetzner Cloud Zone Resource Record Set (RRSet).
+///
+/// See the [Zone RRSets API documentation](https://docs.hetzner.cloud/reference/cloud#zone-rrsets) for more details.
+hcloud_zone_rrset: Mapping<tf.Identifier, ZoneRrset> = tf.resourceMapping<ZoneRrset>()
+
+///
+/// Provides a list of Hetzner Cloud Zone Resource Record Set (RRSet).
+///
+/// See the [Zone RRSets API documentation](https://docs.hetzner.cloud/reference/cloud#zone-rrsets) for more details.
+hcloud_zone_rrsets: Mapping<tf.Identifier, ZoneRrsets> = tf.resourceMapping<ZoneRrsets>()
+
+///
+/// Provides a list of Hetzner Cloud Zone.
+///
+/// See the [Zones API documentation](https://docs.hetzner.cloud/reference/cloud#zones) for more details.
+hcloud_zones: Mapping<tf.Identifier, Zones> = tf.resourceMapping<Zones>()

@@ -1,0 +1,74 @@
+/// Data source hcloud_servers from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.data.Servers
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+id: tf.Input<String>?
+
+hidden fixed servers: tf.Computed<Listing<Servers>> = tf.computed<Listing<Servers>>(this, "servers")
+
+with_selector: tf.Input<String>?
+
+with_status: tf.InputListing<String>?
+
+class Servers extends Referenceable {
+  backup_window: String
+
+  backups: Boolean
+
+  datacenter: String
+
+  delete_protection: Boolean
+
+  firewall_ids: Listing<Number>
+
+  id: Number
+
+  image: String
+
+  ipv4_address: String
+
+  ipv6_address: String
+
+  ipv6_network: String
+
+  iso: String
+
+  labels: Mapping<String, String>
+
+  location: String
+
+  name: String
+
+  network: Listing<Network>(isDistinct)
+
+  placement_group_id: Number
+
+  primary_disk_size: Number
+
+  rebuild_protection: Boolean
+
+  rescue: String
+
+  server_type: String
+
+  status: String
+}
+
+class Network extends Referenceable {
+  alias_ips: Listing<String>(isDistinct)
+
+  ip: String
+
+  mac_address: String
+
+  network_id: Number
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_servers"

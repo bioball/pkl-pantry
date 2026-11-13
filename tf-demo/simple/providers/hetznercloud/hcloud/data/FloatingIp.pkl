@@ -1,0 +1,37 @@
+/// Data source hcloud_floating_ip from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.data.FloatingIp
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/tf.pkl"
+
+hidden fixed delete_protection: tf.Computed<Boolean> =
+  tf.computed<Boolean>(this, "delete_protection")
+
+hidden fixed description: tf.Computed<String> = tf.computed<String>(this, "description")
+
+hidden fixed home_location: tf.Computed<String> = tf.computed<String>(this, "home_location")
+
+id: tf.Input<Number>?
+
+ip_address: tf.Input<String>?
+
+hidden fixed ip_network: tf.Computed<String> = tf.computed<String>(this, "ip_network")
+
+hidden fixed labels: tf.Computed<Mapping<String, String>> =
+  tf.computed<Mapping<String, String>>(this, "labels")
+
+name: tf.Input<String>?
+
+selector: tf.Input<String>?
+
+hidden fixed server_id: tf.Computed<Number> = tf.computed<Number>(this, "server_id")
+
+hidden fixed type: tf.Computed<String> = tf.computed<String>(this, "type")
+
+with_selector: tf.Input<String>?
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_floating_ip"

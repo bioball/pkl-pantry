@@ -1,0 +1,49 @@
+/// Provides a list of available Hetzner Cloud Datacenters.
+///
+/// This resource may be useful to create highly available infrastructure, distributed across several Datacenters.
+///
+/// !> The `hcloud_datacenters` data source is deprecated, and will be removed after 1 Oct. 2026.
+/// After this date, requests to the datacenters API endpoints will return `HTTP 410 Gone`.
+/// Please use the `hcloud_locations` data source instead.
+/// See the [changelog](https://docs.hetzner.cloud/changelog#2026-06-02-datacenters-deprecated) for more details.
+module providers.hetznercloud.hcloud.data.Datacenters
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+hidden fixed datacenter_ids: tf.Computed<Listing<String>> =
+  tf.computed<Listing<String>>(this, "datacenter_ids")
+
+hidden fixed datacenters: tf.Computed<Listing<Datacenters>> =
+  tf.computed<Listing<Datacenters>>(this, "datacenters")
+
+hidden fixed descriptions: tf.Computed<Listing<String>> =
+  tf.computed<Listing<String>>(this, "descriptions")
+
+hidden fixed id: tf.Computed<String> = tf.computed<String>(this, "id")
+
+hidden fixed names: tf.Computed<Listing<String>> = tf.computed<Listing<String>>(this, "names")
+
+class Datacenters extends Referenceable {
+  /// List of currently available Server Types in the Datacenter.
+  available_server_type_ids: Listing<Number>
+
+  /// Description of the Datacenter.
+  description: String
+
+  /// Location of the Datacenter. See the [Hetzner Docs](https://docs.hetzner.com/cloud/general/locations/#what-locations-are-there) for more details about locations.
+  location: Mapping<String, String>
+
+  /// Name of the Datacenter.
+  name: String
+
+  /// List of supported Server Types in the Datacenter.
+  supported_server_type_ids: Listing<Number>
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_datacenters"

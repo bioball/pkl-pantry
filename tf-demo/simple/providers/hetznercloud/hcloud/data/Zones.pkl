@@ -1,0 +1,66 @@
+/// Provides a list of Hetzner Cloud Zone.
+///
+/// See the [Zones API documentation](https://docs.hetzner.cloud/reference/cloud#zones) for more details.
+module providers.hetznercloud.hcloud.data.Zones
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+hidden fixed id: tf.Computed<String> = tf.computed<String>(this, "id")
+
+/// Filter results using a [Label Selector](https://docs.hetzner.cloud/reference/cloud#label-selector).
+with_selector: tf.Input<String>?
+
+hidden fixed zones: tf.Computed<Listing<Zones>> = tf.computed<Listing<Zones>>(this, "zones")
+
+class Zones extends Referenceable {
+  /// Authoritative nameservers of the Zone.
+  authoritative_nameservers: AuthoritativeNameservers?
+
+  /// Whether delete protection is enabled.
+  delete_protection: Boolean
+
+  /// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+  labels: Mapping<String, String>
+
+  /// Mode of the Zone.
+  mode: String
+
+  /// Name of the Zone.
+  name: String
+
+  /// Primary nameservers of the Zone.
+  primary_nameservers: Listing<PrimaryNameservers>
+
+  /// Registrar of the Zone.
+  registrar: String
+
+  /// Default Time To Live (TTL) of the Zone.
+  ttl: Number
+}
+
+class AuthoritativeNameservers extends Referenceable {
+  /// Authoritative Hetzner nameservers assigned to the Zone.
+  assigned: Listing<String>
+}
+
+class PrimaryNameservers extends Referenceable {
+  /// Public IPv4 or IPv6 address of the primary nameserver.
+  address: String
+
+  /// Port of the primary nameserver.
+  port: Number
+
+  /// Transaction signature (TSIG) algorithm used to generate the TSIG key.
+  tsig_algorithm: String
+
+  /// Transaction signature (TSIG) key.
+  tsig_key: String
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_zones"

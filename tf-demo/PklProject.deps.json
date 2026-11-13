@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "resolvedDependencies": {
+    "package://pkg.pkl-lang.org/pkl-pantry/tf.codegen@1": {
+      "type": "local",
+      "uri": "projectpackage://pkg.pkl-lang.org/pkl-pantry/tf.codegen@1.0.0",
+      "path": "../packages/tf.codegen"
+    },
+    "package://pkg.pkl-lang.org/pkl-pantry/tf@1": {
+      "type": "local",
+      "uri": "projectpackage://pkg.pkl-lang.org/pkl-pantry/tf@1.0.0",
+      "path": "../packages/tf"
+    },
+    "package://pkg.pkl-lang.org/pkl-pantry/pkl.experimental.syntax@1": {
+      "type": "local",
+      "uri": "projectpackage://pkg.pkl-lang.org/pkl-pantry/pkl.experimental.syntax@1.2.2",
+      "path": "../packages/pkl.experimental.syntax"
+    }
+  }
+}

@@ -1,0 +1,39 @@
+/// Provides details about a specific Hetzner Cloud Datacenter.
+///
+/// Use this resource to get detailed information about a specific Datacenter.
+///
+/// !> The `hcloud_datacenter` data source is deprecated, and will be removed after 1 Oct. 2026.
+/// After this date, requests to the datacenters API endpoints will return `HTTP 410 Gone`.
+/// Please use the `hcloud_location` data source instead.
+/// See the [changelog](https://docs.hetzner.cloud/changelog#2026-06-02-datacenters-deprecated) for more details.
+module providers.hetznercloud.hcloud.data.Datacenter
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/tf.pkl"
+
+/// List of currently available Server Types in the Datacenter.
+hidden fixed available_server_type_ids: tf.Computed<Listing<Number>> =
+  tf.computed<Listing<Number>>(this, "available_server_type_ids")
+
+/// Description of the Datacenter.
+hidden fixed description: tf.Computed<String> = tf.computed<String>(this, "description")
+
+/// ID of the Datacenter.
+id: tf.Input<Number>?
+
+/// Location of the Datacenter. See the [Hetzner Docs](https://docs.hetzner.com/cloud/general/locations/#what-locations-are-there) for more details about locations.
+hidden fixed location: tf.Computed<Mapping<String, String>> =
+  tf.computed<Mapping<String, String>>(this, "location")
+
+/// Name of the Datacenter.
+name: tf.Input<String>?
+
+/// List of supported Server Types in the Datacenter.
+hidden fixed supported_server_type_ids: tf.Computed<Listing<Number>> =
+  tf.computed<Listing<Number>>(this, "supported_server_type_ids")
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_datacenter"

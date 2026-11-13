@@ -1,0 +1,31 @@
+/// Manage the attachment of a Server in a Network in the Hetzner Cloud.
+module providers.hetznercloud.hcloud.resource.ServerNetwork
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+/// Additional IPs to assign to the Server.
+alias_ips: tf.InputListing<String>?
+
+hidden fixed id: tf.Computed<String> = tf.computed<String>(this, "id")
+
+/// IP to assign to the Server.
+ip: tf.Input<String>?
+
+/// MAC address of the Server on the Network.
+hidden fixed mac_address: tf.Computed<String> = tf.computed<String>(this, "mac_address")
+
+/// ID of the Network to attach the Server to. Using `subnet_id` is preferred. Required if `subnet_id` is not set. If `subnet_id` or `ip` are not set, the Server will be attached to the last subnet (ordered by `ip_range`).
+network_id: tf.Input<Number>?
+
+/// ID of the Server.
+server_id: tf.Input<Number>
+
+/// ID of the Subnet to attach the Server to. Required if `network_id` is not set.
+subnet_id: tf.Input<String>?
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_server_network"

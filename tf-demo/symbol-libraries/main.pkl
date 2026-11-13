@@ -1,0 +1,21 @@
+amends "@tf/tf.pkl"
+
+import "lib.pkl"
+
+local dns: lib.DnsRecordSet = new {
+  name = "Example"
+  type = "A"
+  ttlDuration = 1.min
+  records {
+    "example.com. 600 IN A 10.10.10.10"
+  }
+}
+
+outputs {
+  ["example"] {
+    value = lib.exampleRecordSet
+  }
+  ["formatted"] {
+    value = lib.formatDnsRecordSet(dns)
+  }
+}

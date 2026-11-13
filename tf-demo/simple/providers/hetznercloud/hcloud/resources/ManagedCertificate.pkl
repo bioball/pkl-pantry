@@ -1,0 +1,31 @@
+/// Resource hcloud_managed_certificate from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.resource.ManagedCertificate
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+hidden fixed certificate: tf.Computed<String> = tf.computed<String>(this, "certificate")
+
+hidden fixed created: tf.Computed<String> = tf.computed<String>(this, "created")
+
+domain_names: tf.InputListing<String>
+
+hidden fixed fingerprint: tf.Computed<String> = tf.computed<String>(this, "fingerprint")
+
+id: tf.Input<String>?
+
+labels: tf.InputMapping<String, String>?
+
+name: tf.Input<String>
+
+hidden fixed not_valid_after: tf.Computed<String> = tf.computed<String>(this, "not_valid_after")
+
+hidden fixed not_valid_before: tf.Computed<String> = tf.computed<String>(this, "not_valid_before")
+
+hidden fixed type: tf.Computed<String> = tf.computed<String>(this, "type")
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_managed_certificate"

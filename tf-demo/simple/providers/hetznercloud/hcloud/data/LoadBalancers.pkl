@@ -1,0 +1,119 @@
+/// Data source hcloud_load_balancers from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.data.LoadBalancers
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+id: tf.Input<String>?
+
+hidden fixed load_balancers: tf.Computed<Listing<LoadBalancers>> =
+  tf.computed<Listing<LoadBalancers>>(this, "load_balancers")
+
+with_selector: tf.Input<String>?
+
+class LoadBalancers extends Referenceable {
+  algorithm: Listing<Algorithm>
+
+  delete_protection: Boolean
+
+  id: Number
+
+  ipv4: String
+
+  ipv4_id: Number
+
+  ipv6: String
+
+  ipv6_id: Number
+
+  labels: Mapping<String, String>
+
+  load_balancer_type: String
+
+  location: String
+
+  name: String
+
+  network_id: Number
+
+  network_ip: String
+
+  network_zone: String
+
+  service: Listing<Service>
+
+  target: Listing<Target>
+}
+
+class Algorithm extends Referenceable {
+  type: String
+}
+
+class Service extends Referenceable {
+  destination_port: Number
+
+  health_check: Listing<HealthCheck>
+
+  http: Listing<ServiceHttp>
+
+  listen_port: Number
+
+  protocol: String
+
+  proxyprotocol: Boolean
+}
+
+class HealthCheck extends Referenceable {
+  http: Listing<Http>
+
+  interval: Number
+
+  port: Number
+
+  protocol: String
+
+  retries: Number
+
+  timeout: Number
+}
+
+class Http extends Referenceable {
+  domain: String
+
+  path: String
+
+  response: String
+
+  status_codes: Listing<Number>
+
+  tls: Boolean
+}
+
+class ServiceHttp extends Referenceable {
+  certificates: Listing<String>
+
+  cookie_lifetime: Number
+
+  cookie_name: String
+
+  redirect_http: Boolean
+
+  sticky_sessions: Boolean
+
+  timeout_idle: Number
+}
+
+class Target extends Referenceable {
+  label_selector: String
+
+  server_id: Number
+
+  type: String
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_load_balancers"

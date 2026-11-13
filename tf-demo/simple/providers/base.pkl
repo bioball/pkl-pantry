@@ -1,0 +1,18 @@
+extends "@tf/tf.pkl"
+
+import "Data.pkl"
+import "EphemeralResources.pkl"
+import "Providers.pkl"
+import "Resources.pkl"
+
+/// Terraform/OpenTofu provider configuration.
+provider: Providers
+
+/// Terraform/OpenTofu resource configuration.
+resource: Resources
+
+/// Terraform/OpenTofu ephemeral resource configuration.
+ephemeral: EphemeralResources
+
+/// Terraform/OpenTofu data configuration.
+data: Data

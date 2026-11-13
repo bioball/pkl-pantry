@@ -1,0 +1,53 @@
+/// Data source hcloud_firewalls from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.data.Firewalls
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+hidden fixed firewalls: tf.Computed<Listing<Firewalls>> =
+  tf.computed<Listing<Firewalls>>(this, "firewalls")
+
+id: tf.Input<String>?
+
+most_recent: tf.Input<Boolean>?
+
+with_selector: tf.Input<String>?
+
+class Firewalls extends Referenceable {
+  apply_to: Listing<ApplyTo>(isDistinct)
+
+  id: Number
+
+  labels: Mapping<String, String>
+
+  name: String
+
+  rule: Listing<Rule>(isDistinct)
+}
+
+class ApplyTo extends Referenceable {
+  label_selector: String
+
+  server: Number
+}
+
+class Rule extends Referenceable {
+  description: String
+
+  destination_ips: Listing<String>(isDistinct)
+
+  direction: String
+
+  port: String
+
+  protocol: String
+
+  source_ips: Listing<String>(isDistinct)
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_firewalls"

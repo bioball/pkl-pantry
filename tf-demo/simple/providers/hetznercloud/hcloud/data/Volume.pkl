@@ -1,0 +1,35 @@
+/// Data source hcloud_volume from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.data.Volume
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/tf.pkl"
+
+hidden fixed delete_protection: tf.Computed<Boolean> =
+  tf.computed<Boolean>(this, "delete_protection")
+
+id: tf.Input<Number>?
+
+hidden fixed labels: tf.Computed<Mapping<String, String>> =
+  tf.computed<Mapping<String, String>>(this, "labels")
+
+hidden fixed linux_device: tf.Computed<String> = tf.computed<String>(this, "linux_device")
+
+location: tf.Input<String>?
+
+name: tf.Input<String>?
+
+selector: tf.Input<String>?
+
+server_id: tf.Input<Number>?
+
+hidden fixed size: tf.Computed<Number> = tf.computed<Number>(this, "size")
+
+with_selector: tf.Input<String>?
+
+with_status: tf.InputListing<String>?
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_volume"

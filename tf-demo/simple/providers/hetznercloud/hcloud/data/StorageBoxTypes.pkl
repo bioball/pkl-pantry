@@ -1,0 +1,46 @@
+/// Provides a list of Hetzner Storage Box Types.
+///
+/// See the [Storage Box Type API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-box-types) for more details.
+module providers.hetznercloud.hcloud.data.StorageBoxTypes
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+hidden fixed storage_box_types: tf.Computed<Listing<StorageBoxTypes>> =
+  tf.computed<Listing<StorageBoxTypes>>(this, "storage_box_types")
+
+class StorageBoxTypes extends Referenceable {
+  /// Maximum number of snapshots created automatically by a snapshot plan.
+  automatic_snapshot_limit: Number
+
+  /// Date of the Storage Box Type deprecation announcement.
+  deprecation_announced: String
+
+  /// Description of the Storage Box Type.
+  description: String
+
+  /// Whether the Storage Box Type is deprecated.
+  is_deprecated: Boolean
+
+  /// Name of the Storage Box Type.
+  name: String
+
+  /// Available storage in bytes.
+  size: Number
+
+  /// Maximum number of allowed manual snapshots.
+  snapshot_limit: Number
+
+  /// Maximum number of subaccounts.
+  subaccounts_limit: Number
+
+  /// Date of the Storage Box Type removal. After this date, the Storage Box Type cannot be used anymore.
+  unavailable_after: String
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_storage_box_types"

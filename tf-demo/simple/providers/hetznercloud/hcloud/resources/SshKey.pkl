@@ -1,0 +1,26 @@
+/// Provides a Hetzner Cloud SSH Key resource to manage SSH Keys for server access.
+module providers.hetznercloud.hcloud.resource.SshKey
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+/// Fingerprint of the SSH public key.
+hidden fixed fingerprint: tf.Computed<String> = tf.computed<String>(this, "fingerprint")
+
+/// ID of the SSH Key.
+hidden fixed id: tf.Computed<String> = tf.computed<String>(this, "id")
+
+/// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+labels: tf.InputMapping<String, String>?
+
+/// Name of the SSH Key.
+name: tf.Input<String>
+
+/// Public key of the SSH Key pair. If this is a file, it can be read using the `file` interpolation function.
+public_key: tf.Input<String>
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_ssh_key"

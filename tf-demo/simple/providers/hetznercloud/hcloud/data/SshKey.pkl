@@ -1,0 +1,35 @@
+/// Provides details about a specific Hetzner Cloud SSH Key.
+///
+/// This resource is useful if you want to use a non-terraform managed SSH Key.
+module providers.hetznercloud.hcloud.data.SshKey
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/tf.pkl"
+
+/// Fingerprint of the SSH Key.
+fingerprint: tf.Input<String>?
+
+/// ID of the SSH Key.
+id: tf.Input<Number>?
+
+/// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+hidden fixed labels: tf.Computed<Mapping<String, String>> =
+  tf.computed<Mapping<String, String>>(this, "labels")
+
+/// Name of the SSH Key.
+name: tf.Input<String>?
+
+/// Public key of the SSH Key pair.
+hidden fixed public_key: tf.Computed<String> = tf.computed<String>(this, "public_key")
+
+/// Filter results using a [Label Selector](https://docs.hetzner.cloud/reference/cloud#label-selector).
+selector: tf.Input<String>?
+
+/// Filter results using a [Label Selector](https://docs.hetzner.cloud/reference/cloud#label-selector).
+with_selector: tf.Input<String>?
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_ssh_key"

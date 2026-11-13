@@ -1,0 +1,29 @@
+/// Resource hcloud_snapshot from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.resource.Snapshot
+
+extends "@tf/Resource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+description: tf.Input<String>?
+
+id: tf.Input<String>?
+
+labels: tf.InputMapping<String, String>?
+
+server_id: tf.Input<Number>
+
+timeouts: Timeouts? =
+  Null(new Timeouts {
+    $path = (outer.$path.toList() + List("timeouts")).toListing()
+  })
+
+class Timeouts extends Referenceable {
+  create: tf.Input<String>?
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_snapshot"

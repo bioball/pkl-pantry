@@ -1,0 +1,17 @@
+/// Resource hcloud_floating_ip_assignment from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.resource.FloatingIpAssignment
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+floating_ip_id: tf.Input<Number>
+
+id: tf.Input<String>?
+
+server_id: tf.Input<Number>
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_floating_ip_assignment"

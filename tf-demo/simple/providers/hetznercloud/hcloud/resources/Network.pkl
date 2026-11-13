@@ -1,0 +1,24 @@
+/// Resource hcloud_network from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.resource.Network
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+delete_protection: tf.Input<Boolean>?
+
+/// Enable or disable exposing the routes to the vSwitch connection. The exposing only takes effect if a vSwitch connection is active.
+expose_routes_to_vswitch: tf.Input<Boolean>?
+
+id: tf.Input<String>?
+
+ip_range: tf.Input<String>
+
+labels: tf.InputMapping<String, String>?
+
+name: tf.Input<String>
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_network"

@@ -1,0 +1,25 @@
+/// Resource hcloud_network_subnet from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.resource.NetworkSubnet
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+hidden fixed gateway: tf.Computed<String> = tf.computed<String>(this, "gateway")
+
+id: tf.Input<String>?
+
+ip_range: tf.Input<String>
+
+network_id: tf.Input<Number>
+
+network_zone: tf.Input<String>
+
+type: tf.Input<String>
+
+vswitch_id: tf.Input<Number>?
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_network_subnet"

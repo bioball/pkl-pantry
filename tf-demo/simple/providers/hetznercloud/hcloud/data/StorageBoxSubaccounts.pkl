@@ -1,0 +1,66 @@
+/// Provides a list of Hetzner Storage Box Subaccounts.
+///
+/// See the [Storage Box Subaccounts API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-box-subaccounts) for more details.
+module providers.hetznercloud.hcloud.data.StorageBoxSubaccounts
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+/// ID of the Storage Box.
+storage_box_id: tf.Input<Number>
+
+hidden fixed subaccounts: tf.Computed<Listing<Subaccounts>> =
+  tf.computed<Listing<Subaccounts>>(this, "subaccounts")
+
+/// Filter results using a [Label Selector](https://docs.hetzner.cloud/reference/cloud#label-selector).
+with_selector: tf.Input<String>?
+
+class Subaccounts extends Referenceable {
+  /// Access settings for the Subaccount.
+  access_settings: AccessSettings?
+
+  /// Description of the Storage Box Subaccount.
+  description: String
+
+  /// Home directory of the Storage Box Subaccount.
+  home_directory: String
+
+  /// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+  labels: Mapping<String, String>
+
+  /// Name of the Storage Box Subaccount.
+  name: String
+
+  /// FQDN of the Storage Box Subaccount.
+  server: String
+
+  /// ID of the Storage Box.
+  storage_box_id: Number
+
+  /// Username of the Storage Box Subaccount.
+  username: String
+}
+
+class AccessSettings extends Referenceable {
+  /// Whether access from outside the Hetzner network is allowed.
+  reachable_externally: Boolean
+
+  /// Whether the Subaccount is read-only.
+  readonly: Boolean
+
+  /// Whether the Samba subsystem is enabled.
+  samba_enabled: Boolean
+
+  /// Whether the SSH subsystem is enabled.
+  ssh_enabled: Boolean
+
+  /// Whether the WebDAV subsystem is enabled.
+  webdav_enabled: Boolean
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_storage_box_subaccounts"

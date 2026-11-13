@@ -1,0 +1,45 @@
+/// Provides details about a Hetzner Storage Box Type.
+///
+/// See the [Storage Box Type API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-box-types) for more details.
+module providers.hetznercloud.hcloud.data.StorageBoxType
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/tf.pkl"
+
+/// Maximum number of snapshots created automatically by a snapshot plan.
+hidden fixed automatic_snapshot_limit: tf.Computed<Number> =
+  tf.computed<Number>(this, "automatic_snapshot_limit")
+
+/// Date of the Storage Box Type deprecation announcement.
+hidden fixed deprecation_announced: tf.Computed<String> =
+  tf.computed<String>(this, "deprecation_announced")
+
+/// Description of the Storage Box Type.
+hidden fixed description: tf.Computed<String> = tf.computed<String>(this, "description")
+
+/// ID of the Storage Box Type.
+id: tf.Input<Number>?
+
+/// Whether the Storage Box Type is deprecated.
+hidden fixed is_deprecated: tf.Computed<Boolean> = tf.computed<Boolean>(this, "is_deprecated")
+
+/// Name of the Storage Box Type.
+name: tf.Input<String>?
+
+/// Available storage in bytes.
+hidden fixed size: tf.Computed<Number> = tf.computed<Number>(this, "size")
+
+/// Maximum number of allowed manual snapshots.
+hidden fixed snapshot_limit: tf.Computed<Number> = tf.computed<Number>(this, "snapshot_limit")
+
+/// Maximum number of subaccounts.
+hidden fixed subaccounts_limit: tf.Computed<Number> = tf.computed<Number>(this, "subaccounts_limit")
+
+/// Date of the Storage Box Type removal. After this date, the Storage Box Type cannot be used anymore.
+hidden fixed unavailable_after: tf.Computed<String> = tf.computed<String>(this, "unavailable_after")
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_storage_box_type"

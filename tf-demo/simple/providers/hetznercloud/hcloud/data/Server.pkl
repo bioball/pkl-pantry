@@ -1,0 +1,81 @@
+/// Data source hcloud_server from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.data.Server
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+hidden fixed backup_window: tf.Computed<String> = tf.computed<String>(this, "backup_window")
+
+hidden fixed backups: tf.Computed<Boolean> = tf.computed<Boolean>(this, "backups")
+
+hidden fixed datacenter: tf.Computed<String> = tf.computed<String>(this, "datacenter")
+
+hidden fixed delete_protection: tf.Computed<Boolean> =
+  tf.computed<Boolean>(this, "delete_protection")
+
+hidden fixed firewall_ids: tf.Computed<Listing<Number>> =
+  tf.computed<Listing<Number>>(this, "firewall_ids")
+
+id: tf.Input<Number>?
+
+hidden fixed image: tf.Computed<String> = tf.computed<String>(this, "image")
+
+hidden fixed ipv4_address: tf.Computed<String> = tf.computed<String>(this, "ipv4_address")
+
+hidden fixed ipv6_address: tf.Computed<String> = tf.computed<String>(this, "ipv6_address")
+
+hidden fixed ipv6_network: tf.Computed<String> = tf.computed<String>(this, "ipv6_network")
+
+hidden fixed iso: tf.Computed<String> = tf.computed<String>(this, "iso")
+
+hidden fixed labels: tf.Computed<Mapping<String, String>> =
+  tf.computed<Mapping<String, String>>(this, "labels")
+
+hidden fixed location: tf.Computed<String> = tf.computed<String>(this, "location")
+
+name: tf.Input<String>?
+
+placement_group_id: tf.Input<Number>?
+
+hidden fixed primary_disk_size: tf.Computed<Number> = tf.computed<Number>(this, "primary_disk_size")
+
+hidden fixed rebuild_protection: tf.Computed<Boolean> =
+  tf.computed<Boolean>(this, "rebuild_protection")
+
+hidden fixed rescue: tf.Computed<String> = tf.computed<String>(this, "rescue")
+
+selector: tf.Input<String>?
+
+hidden fixed server_type: tf.Computed<String> = tf.computed<String>(this, "server_type")
+
+hidden fixed status: tf.Computed<String> = tf.computed<String>(this, "status")
+
+with_selector: tf.Input<String>?
+
+with_status: tf.InputListing<String>?
+
+network: Listing<Network>(isDistinct) =
+  let (self = this)
+    new {
+      default { key ->
+        $path = (self.$path.toList() + List("network", key)).toListing()
+      }
+    }
+
+class Network extends Referenceable {
+  hidden fixed alias_ips: tf.Computed<Listing<String>(isDistinct)> =
+    tf.computed<Listing<String>(isDistinct)>(this, "alias_ips")
+
+  hidden fixed ip: tf.Computed<String> = tf.computed<String>(this, "ip")
+
+  hidden fixed mac_address: tf.Computed<String> = tf.computed<String>(this, "mac_address")
+
+  hidden fixed network_id: tf.Computed<Number> = tf.computed<Number>(this, "network_id")
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_server"

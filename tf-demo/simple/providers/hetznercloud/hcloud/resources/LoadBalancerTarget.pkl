@@ -1,0 +1,25 @@
+/// Resource hcloud_load_balancer_target from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.resource.LoadBalancerTarget
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+id: tf.Input<String>?
+
+ip: tf.Input<String>?
+
+label_selector: tf.Input<String>?
+
+load_balancer_id: tf.Input<Number>
+
+server_id: tf.Input<Number>?
+
+type: tf.Input<String>
+
+use_private_ip: tf.Input<Boolean>?
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_load_balancer_target"

@@ -1,0 +1,194 @@
+amends "providers/base.pkl"
+
+import "@tf/tf.pkl"
+import "providers/hetznercloud/hcloud/hcloud.pkl"
+
+local environment = "staging"
+
+local hostname = "你好.example.com"
+
+// Hetzner Cloud IDs are numbers, but the schema of the provider has them as strings.
+local function idOf(res) = tf.computed<Number>(res, "id")
+
+local commonLabels: Mapping<String, String> = new {
+  ["environment"] = environment
+  ["managed-by"] = "opentofu"
+}
+
+terraform {
+  required_providers {
+    ["hcloud"] {
+      source = "hetznercloud/hcloud"
+      version = "~> 1.49"
+    }
+  }
+}
+
+provider {
+  hcloud {}
+}
+
+// Things that already exist in Hetzner Cloud.
+data {
+  hcloud_location {
+    ["primary"] {
+      name = "nbg1"
+    }
+  }
+
+  hcloud_server_type {
+    ["small"] {
+      name = "cx22"
+    }
+  }
+
+  hcloud_image {
+    ["ubuntu"] {
+      name = "ubuntu-24.04"
+      with_architecture = data.hcloud_server_type["small"].architecture
+    }
+  }
+
+  // Read the server back, once the volume is attached.
+  hcloud_server {
+    ["app"] {
+      id = idOf(resource.hcloud_server["app"])
+      depends_on { "hcloud_volume_attachment.data" }
+    }
+  }
+}
+
+resource {
+  // Access and networking.
+  hcloud_ssh_key {
+    ["deploy"] {
+      name = "deploy-\(environment)"
+      public_key = """
+        ssh-rsa abc123
+        """
+      labels = commonLabels
+    }
+  }
+
+  hcloud_network {
+    ["private"] {
+      name = "private-\(environment)"
+      ip_range = "10.0.0.0/16"
+      labels = commonLabels
+    }
+  }
+
+  hcloud_network_subnet {
+    ["app"] {
+      network_id = idOf(resource.hcloud_network["private"])
+      type = "cloud"
+      network_zone = data.hcloud_location["primary"].network_zone
+      ip_range = "10.0.1.0/24"
+    }
+  }
+
+  hcloud_firewall {
+    ["web"] {
+      name = "web-\(environment)"
+      labels = commonLabels
+
+      rule {
+        new {
+          description = "SSH"
+          direction = "in"
+          protocol = "tcp"
+          port = "22"
+          source_ips { "0.0.0.0/0"; "::/0" }
+        }
+        new {
+          description = "HTTP"
+          direction = "in"
+          protocol = "tcp"
+          port = "80"
+          source_ips { "0.0.0.0/0"; "::/0" }
+        }
+        new {
+          description = "HTTPS"
+          direction = "in"
+          protocol = "tcp"
+          port = "443"
+          source_ips { "0.0.0.0/0"; "::/0" }
+        }
+      }
+    }
+  }
+
+  // The application server, and its data volume.
+  hcloud_server {
+    ["app"] {
+      name = "app-\(environment)"
+      server_type = data.hcloud_server_type["small"].name!!
+      image = data.hcloud_image["ubuntu"].name
+      location = data.hcloud_location["primary"].name
+      ssh_keys {
+        resource.hcloud_ssh_key["deploy"].id
+      }
+      firewall_ids {
+        idOf(resource.hcloud_firewall["web"])
+      }
+      labels = commonLabels
+
+      public_net {
+        new {
+          ipv4_enabled = true
+          ipv6_enabled = true
+        }
+      }
+
+      network {
+        new {
+          network_id = idOf(resource.hcloud_network["private"])
+          ip = "10.0.1.10"
+        }
+      }
+
+      depends_on { "hcloud_network_subnet.app" }
+    }
+  }
+
+  hcloud_volume {
+    ["data"] {
+      name = "data-\(environment)"
+      size = 20
+      format = "ext4"
+      location = data.hcloud_location["primary"].name
+      labels = commonLabels
+    }
+  }
+
+  hcloud_volume_attachment {
+    ["data"] {
+      volume_id = idOf(resource.hcloud_volume["data"])
+      server_id = idOf(resource.hcloud_server["app"])
+      automount = true
+    }
+  }
+
+  hcloud_rdns {
+    ["app"] {
+      server_id = idOf(resource.hcloud_server["app"])
+      ip_address = resource.hcloud_server["app"].ipv4_address
+      dns_ptr = hcloud.idna(hostname)
+    }
+  }
+}
+
+outputs {
+  ["app_public_ip"] {
+    value = data.hcloud_server["app"].ipv4_address
+  }
+  ["app_private_ip"] {
+    value = resource.hcloud_server["app"].network.toList().map((it) -> it.ip)
+  }
+  ["app_hostname"] {
+    value = resource.hcloud_rdns["app"].dns_ptr
+  }
+  ["app_location"] {
+    value = "\(data.hcloud_location["primary"].city) (\(data.hcloud_location["primary"].name))"
+  }
+}

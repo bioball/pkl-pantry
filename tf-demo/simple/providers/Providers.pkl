@@ -1,0 +1,5 @@
+module providers.Providers
+
+import "hetznercloud/hcloud/hcloud.pkl" as hcloudModule
+
+hcloud: hcloudModule.Provider

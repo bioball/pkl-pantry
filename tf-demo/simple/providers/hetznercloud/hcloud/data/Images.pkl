@@ -1,0 +1,76 @@
+/// Provides a list of Hetzner Storage Images.
+///
+/// It is recommended to always provide the image architecture (using ''with_architecture'').
+///
+/// See the [Image API documentation](https://docs.hetzner.cloud/reference/cloud#images) for more details.
+module providers.hetznercloud.hcloud.data.Images
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+hidden fixed id: tf.Computed<String> = tf.computed<String>(this, "id")
+
+hidden fixed images: tf.Computed<Listing<Images>> = tf.computed<Listing<Images>>(this, "images")
+
+/// Include deprecated images.
+include_deprecated: tf.Input<Boolean>?
+
+/// Sort results by created date.
+most_recent: tf.Input<Boolean>?
+
+/// Filter results by architecture, for example `x86` or `arm`.
+with_architecture: tf.InputListing<String>?
+
+/// Filter results using a [Label Selector](https://docs.hetzner.cloud/reference/hetzner#label-selector).
+with_selector: tf.Input<String>?
+
+/// Filter results by statuses, for example `creating` or `available`.
+with_status: tf.InputListing<String>?
+
+class Images extends Referenceable {
+  /// CPU architecture compatible with the Image.
+  architecture: String
+
+  /// Point in time when the Image was created (in RFC3339 format).
+  created: String
+
+  /// Point in time when the Image was marked as deprecated (in RFC3339 format).
+  deprecated: String
+
+  /// Date of the Image deprecation announcement.
+  deprecation_announced: String
+
+  /// Description of the Image.
+  description: String
+
+  /// Whether the Image is deprecated.
+  is_deprecated: Boolean
+
+  /// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+  labels: Mapping<String, String>
+
+  /// Name of the Image, only present when the type is `system`.
+  name: String
+
+  /// Flavor of the operating system contained in the Image.
+  os_flavor: String
+
+  /// Version of the operating system contained in the Image.
+  os_version: String
+
+  /// Whether the Image is optimized for a rapid deployment.
+  rapid_deploy: Boolean
+
+  /// Type of the Image, for example `system`, `backup` or `snapshot`.
+  type: String
+
+  /// Date of the Image removal. After this date, the Image cannot be used anymore.
+  unavailable_after: String
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_images"

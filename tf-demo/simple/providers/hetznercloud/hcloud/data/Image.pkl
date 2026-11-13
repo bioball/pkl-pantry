@@ -1,0 +1,77 @@
+/// Provides details about a Hetzner Cloud Image.
+///
+/// It is recommended to always provide the image architecture (using ''with_architecture'').
+///
+/// See the [Image API documentation](https://docs.hetzner.cloud/reference/cloud#images) for more details.
+module providers.hetznercloud.hcloud.data.Image
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/tf.pkl"
+
+/// CPU architecture compatible with the Image.
+hidden fixed architecture: tf.Computed<String> = tf.computed<String>(this, "architecture")
+
+/// Point in time when the Image was created (in RFC3339 format).
+hidden fixed created: tf.Computed<String> = tf.computed<String>(this, "created")
+
+/// Point in time when the Image was marked as deprecated (in RFC3339 format).
+hidden fixed deprecated: tf.Computed<String> = tf.computed<String>(this, "deprecated")
+
+/// Date of the Image deprecation announcement.
+hidden fixed deprecation_announced: tf.Computed<String> =
+  tf.computed<String>(this, "deprecation_announced")
+
+/// Description of the Image.
+hidden fixed description: tf.Computed<String> = tf.computed<String>(this, "description")
+
+/// ID of the Image.
+id: tf.Input<Number>?
+
+/// Include deprecated images.
+include_deprecated: tf.Input<Boolean>?
+
+/// Whether the Image is deprecated.
+hidden fixed is_deprecated: tf.Computed<Boolean> = tf.computed<Boolean>(this, "is_deprecated")
+
+/// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+hidden fixed labels: tf.Computed<Mapping<String, String>> =
+  tf.computed<Mapping<String, String>>(this, "labels")
+
+/// Sort results by created date, and return the most recent result.
+most_recent: tf.Input<Boolean>?
+
+/// Name of the Image, only present when the type is `system`.
+name: tf.Input<String>?
+
+/// Flavor of the operating system contained in the Image.
+hidden fixed os_flavor: tf.Computed<String> = tf.computed<String>(this, "os_flavor")
+
+/// Version of the operating system contained in the Image.
+hidden fixed os_version: tf.Computed<String> = tf.computed<String>(this, "os_version")
+
+/// Whether the Image is optimized for a rapid deployment.
+hidden fixed rapid_deploy: tf.Computed<Boolean> = tf.computed<Boolean>(this, "rapid_deploy")
+
+/// Filter results using a [Label Selector](https://docs.hetzner.cloud/reference/cloud#label-selector).
+selector: tf.Input<String>?
+
+/// Type of the Image, for example `system`, `backup` or `snapshot`.
+hidden fixed type: tf.Computed<String> = tf.computed<String>(this, "type")
+
+/// Date of the Image removal. After this date, the Image cannot be used anymore.
+hidden fixed unavailable_after: tf.Computed<String> = tf.computed<String>(this, "unavailable_after")
+
+/// Filter results by architecture, for example `x86` (default) or `arm`.
+with_architecture: tf.Input<String>?
+
+/// Filter results using a [Label Selector](https://docs.hetzner.cloud/reference/hetzner#label-selector).
+with_selector: tf.Input<String>?
+
+/// Filter results by statuses, for example `creating` or `available`.
+with_status: tf.InputListing<String>?
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_image"

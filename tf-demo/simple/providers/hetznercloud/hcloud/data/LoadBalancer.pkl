@@ -1,0 +1,116 @@
+/// Data source hcloud_load_balancer from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.data.LoadBalancer
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+hidden fixed algorithm: tf.Computed<Listing<Algorithm>> =
+  tf.computed<Listing<Algorithm>>(this, "algorithm")
+
+hidden fixed delete_protection: tf.Computed<Boolean> =
+  tf.computed<Boolean>(this, "delete_protection")
+
+id: tf.Input<Number>?
+
+hidden fixed ipv4: tf.Computed<String> = tf.computed<String>(this, "ipv4")
+
+hidden fixed ipv4_id: tf.Computed<Number> = tf.computed<Number>(this, "ipv4_id")
+
+hidden fixed ipv6: tf.Computed<String> = tf.computed<String>(this, "ipv6")
+
+hidden fixed ipv6_id: tf.Computed<Number> = tf.computed<Number>(this, "ipv6_id")
+
+hidden fixed labels: tf.Computed<Mapping<String, String>> =
+  tf.computed<Mapping<String, String>>(this, "labels")
+
+hidden fixed load_balancer_type: tf.Computed<String> =
+  tf.computed<String>(this, "load_balancer_type")
+
+hidden fixed location: tf.Computed<String> = tf.computed<String>(this, "location")
+
+name: tf.Input<String>?
+
+hidden fixed network_id: tf.Computed<Number> = tf.computed<Number>(this, "network_id")
+
+hidden fixed network_ip: tf.Computed<String> = tf.computed<String>(this, "network_ip")
+
+hidden fixed network_zone: tf.Computed<String> = tf.computed<String>(this, "network_zone")
+
+hidden fixed service: tf.Computed<Listing<Service>> = tf.computed<Listing<Service>>(this, "service")
+
+hidden fixed target: tf.Computed<Listing<Target>> = tf.computed<Listing<Target>>(this, "target")
+
+with_selector: tf.Input<String>?
+
+class Algorithm extends Referenceable {
+  type: String
+}
+
+class Service extends Referenceable {
+  destination_port: Number
+
+  health_check: Listing<HealthCheck>
+
+  http: Listing<ServiceHttp>
+
+  listen_port: Number
+
+  protocol: String
+
+  proxyprotocol: Boolean
+}
+
+class HealthCheck extends Referenceable {
+  http: Listing<Http>
+
+  interval: Number
+
+  port: Number
+
+  protocol: String
+
+  retries: Number
+
+  timeout: Number
+}
+
+class Http extends Referenceable {
+  domain: String
+
+  path: String
+
+  response: String
+
+  status_codes: Listing<Number>
+
+  tls: Boolean
+}
+
+class ServiceHttp extends Referenceable {
+  certificates: Listing<String>
+
+  cookie_lifetime: Number
+
+  cookie_name: String
+
+  redirect_http: Boolean
+
+  sticky_sessions: Boolean
+
+  timeout_idle: Number
+}
+
+class Target extends Referenceable {
+  label_selector: String
+
+  server_id: Number
+
+  type: String
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_load_balancer"

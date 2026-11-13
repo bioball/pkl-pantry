@@ -1,0 +1,111 @@
+/// Resource hcloud_server from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.resource.Server
+
+extends "@tf/Resource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+allow_deprecated_images: tf.Input<Boolean>?
+
+hidden fixed backup_window: tf.Computed<String> = tf.computed<String>(this, "backup_window")
+
+backups: tf.Input<Boolean>?
+
+datacenter: tf.Input<String>?
+
+delete_protection: tf.Input<Boolean>?
+
+firewall_ids: tf.InputListing<Number>?
+
+id: tf.Input<String>?
+
+ignore_remote_firewall_ids: tf.Input<Boolean>?
+
+image: tf.Input<String>?
+
+hidden fixed ipv4_address: tf.Computed<String> = tf.computed<String>(this, "ipv4_address")
+
+hidden fixed ipv6_address: tf.Computed<String> = tf.computed<String>(this, "ipv6_address")
+
+hidden fixed ipv6_network: tf.Computed<String> = tf.computed<String>(this, "ipv6_network")
+
+iso: tf.Input<String>?
+
+keep_disk: tf.Input<Boolean>?
+
+labels: tf.InputMapping<String, String>?
+
+location: tf.Input<String>?
+
+name: tf.Input<String>
+
+placement_group_id: tf.Input<Number>?
+
+hidden fixed primary_disk_size: tf.Computed<Number> = tf.computed<Number>(this, "primary_disk_size")
+
+rebuild_protection: tf.Input<Boolean>?
+
+rescue: tf.Input<String>?
+
+server_type: tf.Input<String>
+
+shutdown_before_deletion: tf.Input<Boolean>?
+
+ssh_keys: tf.InputListing<String>?
+
+hidden fixed status: tf.Computed<String> = tf.computed<String>(this, "status")
+
+user_data: tf.Input<String>?
+
+network: Listing<Network>(isDistinct) =
+  let (self = this)
+    new {
+      default { key ->
+        $path = (self.$path.toList() + List("network", key)).toListing()
+      }
+    }
+
+public_net: Listing<PublicNet>(isDistinct) =
+  let (self = this)
+    new {
+      default { key ->
+        $path = (self.$path.toList() + List("public_net", key)).toListing()
+      }
+    }
+
+timeouts: Timeouts? =
+  Null(new Timeouts {
+    $path = (outer.$path.toList() + List("timeouts")).toListing()
+  })
+
+class Network extends Referenceable {
+  alias_ips: tf.InputListing<String>?
+
+  ip: tf.Input<String>?
+
+  hidden fixed mac_address: tf.Computed<String> = tf.computed<String>(this, "mac_address")
+
+  network_id: tf.Input<Number>?
+
+  subnet_id: tf.Input<String>?
+}
+
+class PublicNet extends Referenceable {
+  ipv4: tf.Input<Number>?
+
+  ipv4_enabled: tf.Input<Boolean>?
+
+  ipv6: tf.Input<Number>?
+
+  ipv6_enabled: tf.Input<Boolean>?
+}
+
+class Timeouts extends Referenceable {
+  create: tf.Input<String>?
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_server"

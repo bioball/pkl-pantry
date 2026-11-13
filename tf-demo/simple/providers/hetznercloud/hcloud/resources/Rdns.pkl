@@ -1,0 +1,32 @@
+/// Provides Hetzner Cloud reverse DNS (rDNS) entries for Servers, Primary IPs, Floating IPs or Load Balancers.
+module providers.hetznercloud.hcloud.resource.Rdns
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+/// Domain name `ip_address` should point to.
+dns_ptr: tf.Input<String>
+
+/// ID of the Floating IP the `ip_address` belongs to.
+floating_ip_id: tf.Input<Number>?
+
+/// ID of the Reverse DNS entry. Formatted like `$RESOURCE_PREFIX-$RESOURCE_ID-$IP_ADDRESS`, where `$RESOURCE_PREFIX` is `s` for Servers, `p` for Primary IPs, `f` for Floating IPs and `l` for Load Balancers.
+hidden fixed id: tf.Computed<String> = tf.computed<String>(this, "id")
+
+/// IP address that should point to `dns_ptr`.
+ip_address: tf.Input<String>
+
+/// ID of the Load Balancer the `ip_address` belongs to.
+load_balancer_id: tf.Input<Number>?
+
+/// ID of the Primary IP the `ip_address` belongs to.
+primary_ip_id: tf.Input<Number>?
+
+/// ID of the Server the `ip_address` belongs to.
+server_id: tf.Input<Number>?
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_rdns"

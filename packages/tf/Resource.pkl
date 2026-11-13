@@ -31,6 +31,13 @@ lifecycle: tf.Lifecycle?
 /// See [json config examples](https://discuss.hashicorp.com/t/for-each-for-expression-in-json-syntax/15185).
 for_each: String?
 
+/// Handle hidden resource or module dependencies that Terraform can't automatically infer.
+///
+/// Explicitly specifying a dependency is only necessary when a resource or module relies on some other resource's
+/// behavior but doesn't access any of that resource's data in its arguments.
+/// See [documentation](https://www.terraform.io/language/meta-arguments/depends_on).
+depends_on: Listing<String>(isDistinct)
+
 /// The string that identifies the kind of this value; e.g. `aws_s3_bucket`.
 ///
 /// This is an internal field.

@@ -1,0 +1,41 @@
+/// Data source hcloud_floating_ips from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.data.FloatingIps
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+hidden fixed floating_ips: tf.Computed<Listing<FloatingIps>> =
+  tf.computed<Listing<FloatingIps>>(this, "floating_ips")
+
+id: tf.Input<String>?
+
+with_selector: tf.Input<String>?
+
+class FloatingIps extends Referenceable {
+  delete_protection: Boolean
+
+  description: String
+
+  home_location: String
+
+  id: Number
+
+  ip_address: String
+
+  ip_network: String
+
+  labels: Mapping<String, String>
+
+  name: String
+
+  server_id: Number
+
+  type: String
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_floating_ips"

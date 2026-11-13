@@ -1,0 +1,64 @@
+/// Resource hcloud_load_balancer from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.resource.LoadBalancer
+
+extends "@tf/Resource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+delete_protection: tf.Input<Boolean>?
+
+id: tf.Input<String>?
+
+hidden fixed ipv4: tf.Computed<String> = tf.computed<String>(this, "ipv4")
+
+ipv4_id: tf.Input<Number>?
+
+hidden fixed ipv6: tf.Computed<String> = tf.computed<String>(this, "ipv6")
+
+ipv6_id: tf.Input<Number>?
+
+labels: tf.InputMapping<String, String>?
+
+load_balancer_type: tf.Input<String>
+
+location: tf.Input<String>?
+
+name: tf.Input<String>
+
+hidden fixed network_id: tf.Computed<Number> = tf.computed<Number>(this, "network_id")
+
+hidden fixed network_ip: tf.Computed<String> = tf.computed<String>(this, "network_ip")
+
+network_zone: tf.Input<String>?
+
+@tf.Block
+algorithm: Algorithm? =
+  Null(new Algorithm {
+    $path = (outer.$path.toList() + List("algorithm", 0)).toListing()
+  })
+
+target: Listing<Target>(isDistinct) =
+  let (self = this)
+    new {
+      default { key ->
+        $path = (self.$path.toList() + List("target", key)).toListing()
+      }
+    }
+
+class Algorithm extends Referenceable {
+  type: tf.Input<String>?
+}
+
+class Target extends Referenceable {
+  server_id: tf.Input<Number>?
+
+  type: tf.Input<String>
+
+  use_private_ip: tf.Input<Boolean>?
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_load_balancer"

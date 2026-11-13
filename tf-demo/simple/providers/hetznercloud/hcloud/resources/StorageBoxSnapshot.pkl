@@ -1,0 +1,31 @@
+/// Provides a Hetzner Storage Box Snapshot resource.
+///
+/// See the [Storage Box Snapshots API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-box-snapshots) for more details.
+module providers.hetznercloud.hcloud.resource.StorageBoxSnapshot
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+/// Description of the Storage Box Snapshot.
+description: tf.Input<String>?
+
+/// ID of the Storage Box Snapshot.
+hidden fixed id: tf.Computed<Number> = tf.computed<Number>(this, "id")
+
+/// Whether the Storage Box Snapshot was created automatically.
+hidden fixed is_automatic: tf.Computed<Boolean> = tf.computed<Boolean>(this, "is_automatic")
+
+/// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+labels: tf.InputMapping<String, String>?
+
+/// Name of the Storage Box Snapshot.
+hidden fixed name: tf.Computed<String> = tf.computed<String>(this, "name")
+
+/// ID of the Storage Box.
+storage_box_id: tf.Input<Number>
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_storage_box_snapshot"

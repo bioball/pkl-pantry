@@ -1,0 +1,88 @@
+/// Provides a list of available Hetzner Cloud Server Types.
+module providers.hetznercloud.hcloud.data.ServerTypes
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+hidden fixed descriptions: tf.Computed<Listing<String>> =
+  tf.computed<Listing<String>>(this, "descriptions")
+
+hidden fixed id: tf.Computed<String> = tf.computed<String>(this, "id")
+
+hidden fixed names: tf.Computed<Listing<String>> = tf.computed<Listing<String>>(this, "names")
+
+hidden fixed server_type_ids: tf.Computed<Listing<String>> =
+  tf.computed<Listing<String>>(this, "server_type_ids")
+
+hidden fixed server_types: tf.Computed<Listing<ServerTypes>> =
+  tf.computed<Listing<ServerTypes>>(this, "server_types")
+
+class ServerTypes extends Referenceable {
+  /// Architecture of the cpu for a Server of this type.
+  architecture: String
+
+  /// Category of the Server Type.
+  category: String
+
+  /// Number of cpu cores for a Server of this type.
+  cores: Number
+
+  /// Type of cpu for a Server of this type.
+  cpu_type: String
+
+  /// Date of the Server Type deprecation announcement.
+  deprecation_announced: String
+
+  /// Description of the Server Type.
+  description: String
+
+  /// Disk size in GB for a Server of this type.
+  disk: Number
+
+  included_traffic: Number
+
+  /// Whether the Server Type is deprecated.
+  is_deprecated: Boolean
+
+  /// List of supported Locations for this Server Type.
+  locations: Listing<Locations>
+
+  /// Memory in GB for a Server of this type.
+  memory: Number
+
+  /// Name of the Server Type.
+  name: String
+
+  /// Type of boot drive for a Server of this type.
+  storage_type: String
+
+  /// Date of the Server Type removal. After this date, the Server Type cannot be used anymore.
+  unavailable_after: String
+}
+
+class Locations extends Referenceable {
+  /// Whether the Server Type is temporarily unavailable in this Location.
+  available: Boolean
+
+  /// Date of the Server Type deprecation announcement.
+  deprecation_announced: String
+
+  /// Whether the Server Type is deprecated.
+  is_deprecated: Boolean
+
+  /// Name of the Location.
+  name: String
+
+  /// Whether the Server Type is recommended in this Location.
+  recommended: Boolean
+
+  /// Date of the Server Type removal. After this date, the Server Type cannot be used anymore.
+  unavailable_after: String
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_server_types"

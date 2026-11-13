@@ -1,0 +1,41 @@
+module providers.hetznercloud.hcloud.hcloud
+
+import "@tf/Provider.pkl" as BaseProvider
+import "@tf/tf.pkl"
+
+/// Converts a Internationalized Domain Name (IDN) to ASCII using Punycode.
+///
+/// The conversion is defined by Golang's IDNA package. See https://pkg.go.dev/golang.org/x/net/idna
+/// for more details.
+const function idna(domain: tf.Input<String>): tf.Computed<String> =
+  tf.computedFunctionCall<String>(new {
+    inputs = List(domain)
+    provider = "hcloud"
+    functionName = "idna"
+  })
+
+/// Format a TXT record by splitting it in quoted strings of 255 characters.
+const function txt_record(`record`: tf.Input<String>): tf.Computed<String> =
+  tf.computedFunctionCall<String>(new {
+    inputs = List(`record`)
+    provider = "hcloud"
+    functionName = "txt_record"
+  })
+
+/// Configuration block for tf provider 'hcloud'.
+class Provider extends BaseProvider {
+  /// The Hetzner Cloud API endpoint, can be used to override the default API Endpoint https://api.hetzner.cloud/v1.
+  endpoint: tf.ProviderInput<String>?
+
+  /// The Hetzner API endpoint, can be used to override the default API Endpoint https://api.hetzner.com/v1.
+  endpoint_hetzner: tf.ProviderInput<String>?
+
+  /// The type of function to be used during the polling.
+  poll_function: tf.ProviderInput<String>?
+
+  /// The interval at which actions are polled by the client. Default `500ms`. Increase this interval if you run into rate limiting errors.
+  poll_interval: tf.ProviderInput<String>?
+
+  /// The Hetzner Cloud API token, can also be specified with the HCLOUD_TOKEN environment variable.
+  token: tf.ProviderInput<String>?
+}

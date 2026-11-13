@@ -1,0 +1,63 @@
+/// Provides details about a Hetzner Storage Box Subaccount.
+///
+/// See the [Storage Box Subaccounts API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-box-subaccounts) for more details.
+module providers.hetznercloud.hcloud.data.StorageBoxSubaccount
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+/// Access settings for the Subaccount.
+hidden fixed access_settings: tf.Computed<AccessSettings?> =
+  tf.computed<AccessSettings?>(this, "access_settings")
+
+/// Description of the Storage Box Subaccount.
+hidden fixed description: tf.Computed<String> = tf.computed<String>(this, "description")
+
+/// Home directory of the Storage Box Subaccount.
+hidden fixed home_directory: tf.Computed<String> = tf.computed<String>(this, "home_directory")
+
+/// ID of the Storage Box Subaccount.
+id: tf.Input<Number>?
+
+/// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+hidden fixed labels: tf.Computed<Mapping<String, String>> =
+  tf.computed<Mapping<String, String>>(this, "labels")
+
+/// Name of the Storage Box Subaccount.
+name: tf.Input<String>?
+
+/// FQDN of the Storage Box Subaccount.
+hidden fixed server: tf.Computed<String> = tf.computed<String>(this, "server")
+
+/// ID of the Storage Box.
+storage_box_id: tf.Input<Number>
+
+/// Username of the Storage Box Subaccount.
+username: tf.Input<String>?
+
+/// Filter results using a [Label Selector](https://docs.hetzner.cloud/reference/hetzner#label-selector).
+with_selector: tf.Input<String>?
+
+class AccessSettings extends Referenceable {
+  /// Whether access from outside the Hetzner network is allowed.
+  reachable_externally: Boolean
+
+  /// Whether the Subaccount is read-only.
+  readonly: Boolean
+
+  /// Whether the Samba subsystem is enabled.
+  samba_enabled: Boolean
+
+  /// Whether the SSH subsystem is enabled.
+  ssh_enabled: Boolean
+
+  /// Whether the WebDAV subsystem is enabled.
+  webdav_enabled: Boolean
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_storage_box_subaccount"

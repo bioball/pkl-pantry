@@ -1,0 +1,73 @@
+/// Provides a Hetzner Cloud Zone resource.
+///
+/// This can be used to create, modify, and delete Zones.
+///
+/// For Internationalized domain names (IDN), see the `provider::hcloud::idna` function.
+///
+/// See the [Zones API documentation](https://docs.hetzner.cloud/reference/cloud#zones) for more details.
+module providers.hetznercloud.hcloud.resource.Zone
+
+extends "@tf/Resource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+/// Authoritative nameservers of the Zone.
+hidden fixed authoritative_nameservers: tf.Computed<AuthoritativeNameservers?> =
+  tf.computed<AuthoritativeNameservers?>(this, "authoritative_nameservers")
+
+/// Whether delete protection is enabled.
+delete_protection: tf.Input<Boolean>?
+
+/// ID of the Zone.
+hidden fixed id: tf.Computed<Number> = tf.computed<Number>(this, "id")
+
+/// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+labels: tf.InputMapping<String, String>?
+
+/// Mode of the Zone.
+mode: tf.Input<String>
+
+/// Name of the Zone.
+name: tf.Input<String>
+
+/// Primary nameservers of the Zone. Forbidden when mode is primary and required when mode is secondary.
+primary_nameservers: Listing<PrimaryNameservers>? =
+  Null(
+    let (self = this)
+      new Listing<PrimaryNameservers> {
+        default { key ->
+          $path = (self.$path.toList() + List("primary_nameservers", key)).toListing()
+        }
+      },
+  )
+
+/// Registrar of the Zone.
+hidden fixed registrar: tf.Computed<String> = tf.computed<String>(this, "registrar")
+
+/// Default Time To Live (TTL) of the Zone.
+ttl: tf.Input<Number>?
+
+class AuthoritativeNameservers extends Referenceable {
+  /// Authoritative Hetzner nameservers assigned to the Zone.
+  assigned: Listing<String>
+}
+
+class PrimaryNameservers extends Referenceable {
+  /// Public IPv4 or IPv6 address of the primary nameserver.
+  address: tf.Input<String>
+
+  /// Port of the primary nameserver.
+  port: tf.Input<Number>?
+
+  /// Transaction signature (TSIG) algorithm used to generate the TSIG key.
+  tsig_algorithm: tf.Input<String>?
+
+  /// Transaction signature (TSIG) key.
+  tsig_key: tf.Input<String>?
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_zone"

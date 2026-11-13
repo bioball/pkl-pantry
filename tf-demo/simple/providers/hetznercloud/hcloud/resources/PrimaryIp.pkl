@@ -1,0 +1,58 @@
+/// Provides a Hetzner Cloud Primary IP resource.
+///
+/// See the [Primary IP API documentation](https://docs.hetzner.cloud/reference/cloud#tag/primary-ips) for more details.
+///
+/// ## Deprecations
+///
+/// ### `datacenter` attribute
+///
+/// The `datacenter` attribute is marked for removal since `v1.67.0`, you must use the `location` attribute instead.
+///
+/// See our [deprecation](https://docs.hetzner.cloud/changelog#2025-12-16-phasing-out-datacenters) and
+/// [removal](https://docs.hetzner.cloud/changelog#2026-07-01-removing-datacenters) changelog for more details.
+module providers.hetznercloud.hcloud.resource.PrimaryIp
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+/// ID of the resource the Primary IP should be assigned to.
+assignee_id: tf.Input<Number>?
+
+/// Type of the resource the Primary IP should be assigned to.
+assignee_type: tf.Input<String>?
+
+/// Whether auto delete is enabled. Setting `auto_delete` to `true` is not recommended, because if a server assigned to the managed ip is deleted, it will also delete the primary IP which will break the terraform state.
+auto_delete: tf.Input<Boolean>?
+
+/// Name of the Datacenter for the Primary IP. See the [Hetzner Docs](https://docs.hetzner.com/cloud/general/locations/#what-datacenters-are-there) for more details about datacenters.
+datacenter: tf.Input<String>?
+
+/// Whether delete protection is enabled.
+delete_protection: tf.Input<Boolean>?
+
+/// ID of the Primary IP.
+hidden fixed id: tf.Computed<Number> = tf.computed<Number>(this, "id")
+
+/// IP address of the Primary IP.
+hidden fixed ip_address: tf.Computed<String> = tf.computed<String>(this, "ip_address")
+
+/// IP network of the Primary IP for IPv6 addresses. Only set if `type` is `ipv6`.
+hidden fixed ip_network: tf.Computed<String> = tf.computed<String>(this, "ip_network")
+
+/// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+labels: tf.InputMapping<String, String>?
+
+/// Name of the Location for the Primary IP. See the [Hetzner Docs](https://docs.hetzner.com/cloud/general/locations/#what-locations-are-there) for more details about locations.
+location: tf.Input<String>?
+
+/// Name of the Primary IP.
+name: tf.Input<String>
+
+/// Type of the Primary IP (`ipv4` or `ipv6`).
+type: tf.Input<String>
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_primary_ip"

@@ -1,0 +1,36 @@
+/// Provides a Hetzner Cloud Zone Record resource.
+///
+/// This can be used to create, modify, and delete Zone Records.
+///
+/// Managing the TTL, labels and protection level for the Zone Record Set that the Record belongs to is not possible.
+///
+/// Importing this resource is only supported [using an identity](https://developer.hashicorp.com/terraform/plugin/framework/resources/identity#importing-by-identity).
+///
+/// See the [Zone RRSets API documentation](https://docs.hetzner.cloud/reference/cloud#zone-rrsets) for more details.
+///
+/// !> This resource must only be used, when records cannot be managed with a `hcloud_zone_rrset` resource.
+module providers.hetznercloud.hcloud.resource.ZoneRecord
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+/// Comment of the Zone Record.
+comment: tf.Input<String>?
+
+/// Name of the Zone Record.
+name: tf.Input<String>
+
+/// Type of the Zone Record.
+type: tf.Input<String>
+
+/// Value of the Zone Record.
+value: tf.Input<String>
+
+/// ID or Name of the parent Zone.
+zone: tf.Input<String>
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_zone_record"

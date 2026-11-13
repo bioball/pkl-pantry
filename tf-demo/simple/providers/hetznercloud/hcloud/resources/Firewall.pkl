@@ -1,0 +1,54 @@
+/// Resource hcloud_firewall from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.resource.Firewall
+
+extends "@tf/Resource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+id: tf.Input<String>?
+
+labels: tf.InputMapping<String, String>?
+
+name: tf.Input<String>
+
+apply_to: Listing<ApplyTo>(isDistinct) =
+  let (self = this)
+    new {
+      default { key ->
+        $path = (self.$path.toList() + List("apply_to", key)).toListing()
+      }
+    }
+
+rule: Listing<Rule>(isDistinct) =
+  let (self = this)
+    new {
+      default { key ->
+        $path = (self.$path.toList() + List("rule", key)).toListing()
+      }
+    }
+
+class ApplyTo extends Referenceable {
+  label_selector: tf.Input<String>?
+
+  server: tf.Input<Number>?
+}
+
+class Rule extends Referenceable {
+  description: tf.Input<String>?
+
+  destination_ips: tf.InputListing<String>?
+
+  direction: tf.Input<String>
+
+  port: tf.Input<String>?
+
+  protocol: tf.Input<String>
+
+  source_ips: tf.InputListing<String>?
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_firewall"

@@ -1,0 +1,55 @@
+/// Provides a list of Hetzner Cloud Zone Resource Record Set (RRSet).
+///
+/// See the [Zone RRSets API documentation](https://docs.hetzner.cloud/reference/cloud#zone-rrsets) for more details.
+module providers.hetznercloud.hcloud.data.ZoneRrsets
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+hidden fixed id: tf.Computed<String> = tf.computed<String>(this, "id")
+
+hidden fixed rrsets: tf.Computed<Listing<Rrsets>> = tf.computed<Listing<Rrsets>>(this, "rrsets")
+
+/// Filter results using a [Label Selector](https://docs.hetzner.cloud/reference/cloud#label-selector).
+with_selector: tf.Input<String>?
+
+/// ID or Name of the parent Zone.
+zone: tf.Input<String>
+
+class Rrsets extends Referenceable {
+  /// Whether change protection is enabled.
+  change_protection: Boolean
+
+  /// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+  labels: Mapping<String, String>
+
+  /// Name of the Zone RRSet.
+  name: String
+
+  /// Records of the Zone RRSet.
+  records: Listing<Records>(isDistinct)
+
+  /// Time To Live (TTL) of the Zone RRSet.
+  ttl: Number
+
+  /// Type of the Zone RRSet.
+  type: String
+
+  /// ID or Name of the parent Zone.
+  zone: String
+}
+
+class Records extends Referenceable {
+  /// Comment of the record.
+  comment: String
+
+  /// Value of the record.
+  value: String
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_zone_rrsets"

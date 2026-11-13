@@ -14,7 +14,7 @@
 // limitations under the License.
 //===----------------------------------------------------------------------===//
 /// Core module containing Terraform/OpenTofu types.
-abstract module tf.tf
+open module tf.tf
 
 import "pkl:ref"
 
@@ -33,18 +33,6 @@ terraform: Configuration
 /// NOTE: in general, there's no need to use vars when using Pkl.
 /// Instead, these can be defined as regular properties, and inputs can be handled via `read()`.
 variable: Mapping<Identifier, Variable>
-
-/// Terraform/OpenTofu provider configuration.
-provider: Typed
-
-/// Terraform/OpenTofu resource configuration.
-resource: Typed
-
-/// Terraform/OpenTofu ephemeral resource configuration.
-ephemeral: Typed
-
-/// Terraform/OpenTofu data configuration.
-data: Typed
 
 /// Terraform/OpenTofu output values definition.
 ///
@@ -69,6 +57,10 @@ typealias ProviderInput<T> = *T | InputVariable<T>
 ///
 /// Can either be [T], an input variable, or a computed reference.
 typealias Input<T> = *T | InputVariable<T> | Computed<T>
+
+typealias InputListing<Element> = *Listing<Input<Element>> | Input<Listing<Element>>
+
+typealias InputMapping<Key, Value> = *Mapping<Key, Input<Value>> | Input<Mapping<Key, Value>>
 
 typealias IgnoreChanges = *Listing<String>(isDistinct) | "all"
 
@@ -507,11 +499,25 @@ local class FunctionCall extends ReferenceData {
   /// The inputs to the function
   inputs: List<Input<Any>>
 
+  /// Renders an input as an expression.
+  ///
+  /// Strings are quoted, and references are not wrapped in `${...}`, because they are already in an
+  /// expression.
+  local function renderInput(input: Any): String =
+    if (input is String)
+      new JsonRenderer {}.renderValue(input).trim()
+    else if (input is ref.Reference)
+      input.toString().drop(2).dropLast(1)
+    else
+      input.toString()
+
+  local renderedInputs = inputs.map((input) -> renderInput(input)).join(", ")
+
   fixed innerRendered =
     if (provider == null)
-      "\(functionName)(\(inputs.join(", ")))"
+      "\(functionName)(\(renderedInputs))"
     else
-      "provider::\(provider)::\(functionName)(\(inputs.join(", ")))"
+      "provider::\(provider)::\(functionName)(\(renderedInputs))"
 }
 
 output {

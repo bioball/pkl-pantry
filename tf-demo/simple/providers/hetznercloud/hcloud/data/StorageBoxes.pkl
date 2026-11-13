@@ -1,0 +1,86 @@
+/// Provides a list of Hetzner Storage Boxes.
+///
+/// See the [Storage Boxes API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-boxes) for more details.
+module providers.hetznercloud.hcloud.data.StorageBoxes
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+hidden fixed storage_boxes: tf.Computed<Listing<StorageBoxes>> =
+  tf.computed<Listing<StorageBoxes>>(this, "storage_boxes")
+
+/// Filter results using a [Label Selector](https://docs.hetzner.cloud/reference/cloud#label-selector).
+with_selector: tf.Input<String>?
+
+class StorageBoxes extends Referenceable {
+  /// Access settings of the Storage Box.
+  access_settings: AccessSettings?
+
+  /// Whether delete protection is enabled.
+  delete_protection: Boolean
+
+  /// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+  labels: Mapping<String, String>
+
+  /// Name of the Location.
+  location: String
+
+  /// Name of the Storage Box.
+  name: String
+
+  /// FQDN of the Storage Box.
+  server: String
+
+  /// Details of the active snapshot plan.
+  snapshot_plan: SnapshotPlan?
+
+  /// Name of the Storage Box Type.
+  storage_box_type: String
+
+  /// Host system of the Storage Box.
+  system: String
+
+  /// Primary username of the Storage Box.
+  username: String
+}
+
+class AccessSettings extends Referenceable {
+  /// Whether access from outside the Hetzner network is allowed.
+  reachable_externally: Boolean
+
+  /// Whether the Samba subsystem is enabled.
+  samba_enabled: Boolean
+
+  /// Whether the SSH subsystem is enabled.
+  ssh_enabled: Boolean
+
+  /// Whether the WebDAV subsystem is enabled.
+  webdav_enabled: Boolean
+
+  /// Whether the ZFS snapshot folder is visible.
+  zfs_enabled: Boolean
+}
+
+class SnapshotPlan extends Referenceable {
+  /// Day of the month when the Snapshot Plan is executed. Null means every day.
+  day_of_month: Number
+
+  /// Day of the week when the Snapshot Plan is executed. Starts at 0 for Sunday til 6 for Saturday. Note that this differs from the API, which uses 1 (Monday) through 7 (Sunday). Null means every day.
+  day_of_week: Number
+
+  /// Hour when the Snapshot Plan is executed (UTC).
+  hour: Number
+
+  /// Maximum amount of Snapshots that will be created by this Snapshot Plan. Older Snapshots will be deleted.
+  max_snapshots: Number
+
+  /// Minute when the Snapshot Plan is executed (UTC).
+  minute: Number
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_storage_boxes"

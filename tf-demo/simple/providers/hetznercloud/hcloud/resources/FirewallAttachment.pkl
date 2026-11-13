@@ -1,0 +1,19 @@
+/// Resource hcloud_firewall_attachment from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.resource.FirewallAttachment
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+firewall_id: tf.Input<Number>
+
+id: tf.Input<String>?
+
+label_selectors: tf.InputListing<String>?
+
+server_ids: tf.InputListing<Number>?
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_firewall_attachment"

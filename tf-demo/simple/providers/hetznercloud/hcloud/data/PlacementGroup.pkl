@@ -1,0 +1,25 @@
+/// Data source hcloud_placement_group from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.data.PlacementGroup
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/tf.pkl"
+
+id: tf.Input<Number>?
+
+labels: tf.InputMapping<String, String>?
+
+most_recent: tf.Input<Boolean>?
+
+name: tf.Input<String>?
+
+hidden fixed servers: tf.Computed<Listing<Number>> = tf.computed<Listing<Number>>(this, "servers")
+
+type: tf.Input<String>?
+
+with_selector: tf.Input<String>?
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_placement_group"

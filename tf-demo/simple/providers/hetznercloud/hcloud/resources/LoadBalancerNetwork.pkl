@@ -1,0 +1,28 @@
+/// Manage the attachment of a Load Balancer in a Network in the Hetzner Cloud.
+module providers.hetznercloud.hcloud.resource.LoadBalancerNetwork
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+/// Wether the Load Balancer public interface is enabled. Default is `true`.
+enable_public_interface: tf.Input<Boolean>?
+
+hidden fixed id: tf.Computed<String> = tf.computed<String>(this, "id")
+
+/// IP to assign to the Load Balancer.
+ip: tf.Input<String>?
+
+/// ID of the Load Balancer.
+load_balancer_id: tf.Input<Number>
+
+/// ID of the Network to attach the Load Balancer to. Using `subnet_id` is preferred. Required if `subnet_id` is not set. If `subnet_id` or `ip` are not set, the Load Balancer will be attached to the last subnet (ordered by `ip_range`).
+network_id: tf.Input<Number>?
+
+/// ID of the Subnet to attach the Load Balancer to. Required if `network_id` is not set.
+subnet_id: tf.Input<String>?
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_load_balancer_network"

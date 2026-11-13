@@ -1,0 +1,63 @@
+/// Provides details about a Hetzner Cloud Primary IP.
+///
+/// See the [Primary IPs API documentation](https://docs.hetzner.cloud/reference/cloud#tag/primary-ips) for more details.
+///
+/// ## Deprecations
+///
+/// ### `datacenter` attribute
+///
+/// The `datacenter` attribute is marked for removal since `v1.67.0`, you must use the `location` attribute instead.
+///
+/// See our [deprecation](https://docs.hetzner.cloud/changelog#2025-12-16-phasing-out-datacenters) and
+/// [removal](https://docs.hetzner.cloud/changelog#2026-07-01-removing-datacenters) changelog for more details.
+module providers.hetznercloud.hcloud.data.PrimaryIp
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/tf.pkl"
+
+/// ID of the resource the Primary IP is assigned to.
+hidden fixed assignee_id: tf.Computed<Number> = tf.computed<Number>(this, "assignee_id")
+
+/// Type of the resource the Primary IP is assigned to.
+hidden fixed assignee_type: tf.Computed<String> = tf.computed<String>(this, "assignee_type")
+
+/// Whether auto delete is enabled.
+hidden fixed auto_delete: tf.Computed<Boolean> = tf.computed<Boolean>(this, "auto_delete")
+
+/// Name of the Datacenter of the Primary IP.
+hidden fixed datacenter: tf.Computed<String> = tf.computed<String>(this, "datacenter")
+
+/// Whether delete protection is enabled.
+hidden fixed delete_protection: tf.Computed<Boolean> =
+  tf.computed<Boolean>(this, "delete_protection")
+
+/// ID of the Primary IP.
+id: tf.Input<Number>?
+
+/// IP address of the Primary IP.
+ip_address: tf.Input<String>?
+
+/// IP network of the Primary IP for IPv6 addresses. Only set if `type` is `ipv6`.
+hidden fixed ip_network: tf.Computed<String> = tf.computed<String>(this, "ip_network")
+
+/// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+hidden fixed labels: tf.Computed<Mapping<String, String>> =
+  tf.computed<Mapping<String, String>>(this, "labels")
+
+/// Name of the Location of the Primary IP.
+hidden fixed location: tf.Computed<String> = tf.computed<String>(this, "location")
+
+/// Name of the Primary IP.
+name: tf.Input<String>?
+
+/// Type of the Primary IP (`ipv4` or `ipv6`).
+hidden fixed type: tf.Computed<String> = tf.computed<String>(this, "type")
+
+/// Filter results using a [Label Selector](https://docs.hetzner.cloud/reference/cloud#label-selector).
+with_selector: tf.Input<String>?
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_primary_ip"

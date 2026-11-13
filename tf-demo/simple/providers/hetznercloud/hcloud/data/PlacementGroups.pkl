@@ -1,0 +1,33 @@
+/// Data source hcloud_placement_groups from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.data.PlacementGroups
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+id: tf.Input<String>?
+
+most_recent: tf.Input<Boolean>?
+
+hidden fixed placement_groups: tf.Computed<Listing<PlacementGroups>> =
+  tf.computed<Listing<PlacementGroups>>(this, "placement_groups")
+
+with_selector: tf.Input<String>?
+
+class PlacementGroups extends Referenceable {
+  id: Number
+
+  labels: Mapping<String, String>
+
+  name: String
+
+  servers: Listing<Number>
+
+  type: String
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_placement_groups"

@@ -1,0 +1,22 @@
+/// Resource hcloud_placement_group from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.resource.PlacementGroup
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+id: tf.Input<String>?
+
+labels: tf.InputMapping<String, String>?
+
+name: tf.Input<String>
+
+hidden fixed servers: tf.Computed<Listing<Number>(isDistinct)> =
+  tf.computed<Listing<Number>(isDistinct)>(this, "servers")
+
+type: tf.Input<String>
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_placement_group"

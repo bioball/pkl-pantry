@@ -1,0 +1,33 @@
+/// Data source hcloud_networks from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.data.Networks
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+id: tf.Input<String>?
+
+hidden fixed networks: tf.Computed<Listing<Networks>> =
+  tf.computed<Listing<Networks>>(this, "networks")
+
+with_selector: tf.Input<String>?
+
+class Networks extends Referenceable {
+  delete_protection: Boolean
+
+  expose_routes_to_vswitch: Boolean
+
+  id: Number
+
+  ip_range: String
+
+  labels: Mapping<String, String>
+
+  name: String
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_networks"

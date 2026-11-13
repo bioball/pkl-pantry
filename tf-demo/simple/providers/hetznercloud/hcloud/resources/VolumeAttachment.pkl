@@ -1,0 +1,19 @@
+/// Resource hcloud_volume_attachment from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.resource.VolumeAttachment
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+automount: tf.Input<Boolean>?
+
+id: tf.Input<String>?
+
+server_id: tf.Input<Number>
+
+volume_id: tf.Input<Number>
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_volume_attachment"

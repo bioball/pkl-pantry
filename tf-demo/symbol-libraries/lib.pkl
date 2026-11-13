@@ -1,0 +1,37 @@
+module utils
+
+exampleRecordSet: DnsRecordSet = new {
+  name = "Example"
+  type = "A"
+  ttlDuration = 1.s
+  records {
+    "example.com. 600 IN A 10.10.10.10"
+  }
+}
+
+class DnsRecordSet {
+  /// The DNS record set name
+  name: String
+
+  /// The type of this record set
+  type: String
+
+  /// TTL.
+  ///
+  /// Partial seconds are rounded up to the whole second.
+  hidden ttlDuration: Duration
+
+  /// The [ttlDuration] as an integer.
+  fixed ttl: Int = ttlDuration.toUnit("s").value.ceil.toInt()
+
+  /// The underlying records
+  records: Listing<String>(length != 0)
+}
+
+/// Formats the dns record as plain text
+function formatDnsRecordSet(recordSet: DnsRecordSet(records.isNotEmpty)): String =
+  new Listing {
+    for (rec in recordSet.records) {
+      "record_set \(recordSet.name) is a \(recordSet.type) with a ttl of \(recordSet.ttl) and entry \(rec)"
+    }
+  }.join("\n")

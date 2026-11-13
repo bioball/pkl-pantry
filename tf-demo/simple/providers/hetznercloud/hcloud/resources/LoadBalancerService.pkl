@@ -1,0 +1,80 @@
+/// Resource hcloud_load_balancer_service from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.resource.LoadBalancerService
+
+extends "@tf/Resource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+destination_port: tf.Input<Number>?
+
+id: tf.Input<String>?
+
+listen_port: tf.Input<Number>?
+
+load_balancer_id: tf.Input<String>
+
+protocol: tf.Input<String>
+
+proxyprotocol: tf.Input<Boolean>?
+
+@tf.Block
+health_check: HealthCheck? =
+  Null(new HealthCheck {
+    $path = (outer.$path.toList() + List("health_check", 0)).toListing()
+  })
+
+@tf.Block
+http: Http2? =
+  Null(new Http2 {
+    $path = (outer.$path.toList() + List("http", 0)).toListing()
+  })
+
+class HealthCheck extends Referenceable {
+  interval: tf.Input<Number>
+
+  port: tf.Input<Number>
+
+  protocol: tf.Input<String>
+
+  retries: tf.Input<Number>
+
+  timeout: tf.Input<Number>
+
+  @tf.Block
+  http: Http? =
+    Null(new Http {
+      $path = (outer.$path.toList() + List("http", 0)).toListing()
+    })
+}
+
+class Http extends Referenceable {
+  domain: tf.Input<String>?
+
+  path: tf.Input<String>?
+
+  response: tf.Input<String>?
+
+  status_codes: tf.InputListing<String>?
+
+  tls: tf.Input<Boolean>?
+}
+
+class Http2 extends Referenceable {
+  certificates: tf.InputListing<Number>?
+
+  cookie_lifetime: tf.Input<Number>?
+
+  cookie_name: tf.Input<String>?
+
+  redirect_http: tf.Input<Boolean>?
+
+  sticky_sessions: tf.Input<Boolean>?
+
+  timeout_idle: tf.Input<Number>?
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_load_balancer_service"

@@ -1,0 +1,64 @@
+/// Provides a Hetzner Storage Box Subaccount resource.
+///
+/// See the [Storage Box Subaccounts API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-box-subaccounts) for more details.
+module providers.hetznercloud.hcloud.resource.StorageBoxSubaccount
+
+extends "@tf/Resource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+/// Access settings for the Subaccount.
+access_settings: AccessSettings? =
+  Null(new AccessSettings {
+    $path = (outer.$path.toList() + List("access_settings")).toListing()
+  })
+
+/// A description of the Storage Box Subaccount.
+description: tf.Input<String>?
+
+/// Home directory of the Storage Box Subaccount. The directory will be created if it doesn't exist yet. Must not include a leading slash (`/`).
+home_directory: tf.Input<String>
+
+/// ID of the Storage Box Subaccount.
+hidden fixed id: tf.Computed<Number> = tf.computed<Number>(this, "id")
+
+/// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+labels: tf.InputMapping<String, String>?
+
+/// Name of the Storage Box Subaccount.
+name: tf.Input<String>?
+
+/// Password of the Storage Box. For more details, see the [Storage Boxes password policy](https://docs.hetzner.cloud/reference/hetzner#storage-boxes-password-policy).
+password: tf.Input<String>
+
+/// FQDN of the Storage Box Subaccount.
+hidden fixed server: tf.Computed<String> = tf.computed<String>(this, "server")
+
+/// ID of the Storage Box.
+storage_box_id: tf.Input<Number>
+
+/// Username of the Storage Box Subaccount.
+hidden fixed username: tf.Computed<String> = tf.computed<String>(this, "username")
+
+class AccessSettings extends Referenceable {
+  /// Whether access from outside the Hetzner network is allowed.
+  reachable_externally: tf.Input<Boolean>?
+
+  /// Whether the Subaccount is read-only.
+  readonly: tf.Input<Boolean>?
+
+  /// Whether the Samba subsystem is enabled.
+  samba_enabled: tf.Input<Boolean>?
+
+  /// Whether the SSH subsystem is enabled.
+  ssh_enabled: tf.Input<Boolean>?
+
+  /// Whether the WebDAV subsystem is enabled.
+  webdav_enabled: tf.Input<Boolean>?
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_storage_box_subaccount"

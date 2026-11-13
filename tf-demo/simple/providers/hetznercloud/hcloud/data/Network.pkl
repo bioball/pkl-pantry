@@ -1,0 +1,30 @@
+/// Data source hcloud_network from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.data.Network
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/tf.pkl"
+
+hidden fixed delete_protection: tf.Computed<Boolean> =
+  tf.computed<Boolean>(this, "delete_protection")
+
+/// Indicates if the routes from this network should be exposed to the vSwitch connection. The exposing only takes effect if a vSwitch connection is active.
+hidden fixed expose_routes_to_vswitch: tf.Computed<Boolean> =
+  tf.computed<Boolean>(this, "expose_routes_to_vswitch")
+
+id: tf.Input<Number>?
+
+ip_range: tf.Input<String>?
+
+labels: tf.InputMapping<String, String>?
+
+most_recent: tf.Input<Boolean>?
+
+name: tf.Input<String>?
+
+with_selector: tf.Input<String>?
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_network"

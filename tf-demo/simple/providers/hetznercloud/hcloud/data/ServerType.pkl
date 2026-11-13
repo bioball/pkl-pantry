@@ -1,0 +1,80 @@
+/// Provides details about a specific Hetzner Cloud Server Type.
+///
+/// Use this resource to get detailed information about specific Server Type.
+module providers.hetznercloud.hcloud.data.ServerType
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+/// Architecture of the cpu for a Server of this type.
+hidden fixed architecture: tf.Computed<String> = tf.computed<String>(this, "architecture")
+
+/// Category of the Server Type.
+hidden fixed category: tf.Computed<String> = tf.computed<String>(this, "category")
+
+/// Number of cpu cores for a Server of this type.
+hidden fixed cores: tf.Computed<Number> = tf.computed<Number>(this, "cores")
+
+/// Type of cpu for a Server of this type.
+hidden fixed cpu_type: tf.Computed<String> = tf.computed<String>(this, "cpu_type")
+
+/// Date of the Server Type deprecation announcement.
+hidden fixed deprecation_announced: tf.Computed<String> =
+  tf.computed<String>(this, "deprecation_announced")
+
+/// Description of the Server Type.
+hidden fixed description: tf.Computed<String> = tf.computed<String>(this, "description")
+
+/// Disk size in GB for a Server of this type.
+hidden fixed disk: tf.Computed<Number> = tf.computed<Number>(this, "disk")
+
+/// ID of the Server Type.
+id: tf.Input<Number>?
+
+hidden fixed included_traffic: tf.Computed<Number> = tf.computed<Number>(this, "included_traffic")
+
+/// Whether the Server Type is deprecated.
+hidden fixed is_deprecated: tf.Computed<Boolean> = tf.computed<Boolean>(this, "is_deprecated")
+
+/// List of supported Locations for this Server Type.
+hidden fixed locations: tf.Computed<Listing<Locations>> =
+  tf.computed<Listing<Locations>>(this, "locations")
+
+/// Memory in GB for a Server of this type.
+hidden fixed memory: tf.Computed<Number> = tf.computed<Number>(this, "memory")
+
+/// Name of the Server Type.
+name: tf.Input<String>?
+
+/// Type of boot drive for a Server of this type.
+hidden fixed storage_type: tf.Computed<String> = tf.computed<String>(this, "storage_type")
+
+/// Date of the Server Type removal. After this date, the Server Type cannot be used anymore.
+hidden fixed unavailable_after: tf.Computed<String> = tf.computed<String>(this, "unavailable_after")
+
+class Locations extends Referenceable {
+  /// Whether the Server Type is temporarily unavailable in this Location.
+  available: Boolean
+
+  /// Date of the Server Type deprecation announcement.
+  deprecation_announced: String
+
+  /// Whether the Server Type is deprecated.
+  is_deprecated: Boolean
+
+  /// Name of the Location.
+  name: String
+
+  /// Whether the Server Type is recommended in this Location.
+  recommended: Boolean
+
+  /// Date of the Server Type removal. After this date, the Server Type cannot be used anymore.
+  unavailable_after: String
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_server_type"

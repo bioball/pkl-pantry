@@ -1,0 +1,19 @@
+/// Resource hcloud_network_route from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.resource.NetworkRoute
+
+extends "@tf/Resource.pkl"
+
+import "@tf/tf.pkl"
+
+destination: tf.Input<String>
+
+gateway: tf.Input<String>
+
+id: tf.Input<String>?
+
+network_id: tf.Input<Number>
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_network_route"

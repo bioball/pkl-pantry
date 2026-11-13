@@ -1,0 +1,37 @@
+/// Provides details about a specific Hetzner Cloud Location.
+///
+/// Use this resource to get detailed information about a specific Location.
+module providers.hetznercloud.hcloud.data.Location
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/tf.pkl"
+
+/// Name of the closest city to the Location. City name and optionally state in short form.
+hidden fixed city: tf.Computed<String> = tf.computed<String>(this, "city")
+
+/// Country the Location resides in. ISO 3166-1 alpha-2 code of the country.
+hidden fixed country: tf.Computed<String> = tf.computed<String>(this, "country")
+
+/// Description of the Location.
+hidden fixed description: tf.Computed<String> = tf.computed<String>(this, "description")
+
+/// ID of the Location.
+id: tf.Input<Number>?
+
+/// Latitude of the city closest to the Location.
+hidden fixed latitude: tf.Computed<Number> = tf.computed<Number>(this, "latitude")
+
+/// Longitude of the city closest to the Location.
+hidden fixed longitude: tf.Computed<Number> = tf.computed<Number>(this, "longitude")
+
+/// Name of the Location.
+name: tf.Input<String>?
+
+/// Name of the Network Zone this Location resides in.
+hidden fixed network_zone: tf.Computed<String> = tf.computed<String>(this, "network_zone")
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_location"

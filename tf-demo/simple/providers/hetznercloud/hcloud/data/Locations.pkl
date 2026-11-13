@@ -1,0 +1,50 @@
+/// Provides a list of available Hetzner Cloud Locations.
+///
+/// This resource may be useful to create highly available infrastructure, distributed across several locations.
+module providers.hetznercloud.hcloud.data.Locations
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+hidden fixed descriptions: tf.Computed<Listing<String>> =
+  tf.computed<Listing<String>>(this, "descriptions")
+
+hidden fixed id: tf.Computed<String> = tf.computed<String>(this, "id")
+
+hidden fixed location_ids: tf.Computed<Listing<String>> =
+  tf.computed<Listing<String>>(this, "location_ids")
+
+hidden fixed locations: tf.Computed<Listing<Locations>> =
+  tf.computed<Listing<Locations>>(this, "locations")
+
+hidden fixed names: tf.Computed<Listing<String>> = tf.computed<Listing<String>>(this, "names")
+
+class Locations extends Referenceable {
+  /// Name of the closest city to the Location. City name and optionally state in short form.
+  city: String
+
+  /// Country the Location resides in. ISO 3166-1 alpha-2 code of the country.
+  country: String
+
+  /// Description of the Location.
+  description: String
+
+  /// Latitude of the city closest to the Location.
+  latitude: Number
+
+  /// Longitude of the city closest to the Location.
+  longitude: Number
+
+  /// Name of the Location.
+  name: String
+
+  /// Name of the Network Zone this Location resides in.
+  network_zone: String
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_locations"

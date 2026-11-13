@@ -1,0 +1,41 @@
+/// Data source hcloud_certificates from terraform-provider-hcloud.
+module providers.hetznercloud.hcloud.data.Certificates
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+hidden fixed certificates: tf.Computed<Listing<Certificates>> =
+  tf.computed<Listing<Certificates>>(this, "certificates")
+
+id: tf.Input<String>?
+
+with_selector: tf.Input<String>?
+
+class Certificates extends Referenceable {
+  certificate: String
+
+  created: String
+
+  domain_names: Listing<String>
+
+  fingerprint: String
+
+  id: Number
+
+  labels: Mapping<String, String>
+
+  name: String
+
+  not_valid_after: String
+
+  not_valid_before: String
+
+  type: String
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_certificates"

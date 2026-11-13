@@ -1,0 +1,88 @@
+/// Provides details about a Hetzner Storage Box.
+///
+/// See the [Storage Boxes API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-boxes) for more details.
+module providers.hetznercloud.hcloud.data.StorageBox
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+/// Access settings of the Storage Box.
+hidden fixed access_settings: tf.Computed<AccessSettings?> =
+  tf.computed<AccessSettings?>(this, "access_settings")
+
+/// Whether delete protection is enabled.
+hidden fixed delete_protection: tf.Computed<Boolean> =
+  tf.computed<Boolean>(this, "delete_protection")
+
+/// ID of the Storage Box.
+id: tf.Input<Number>?
+
+/// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+hidden fixed labels: tf.Computed<Mapping<String, String>> =
+  tf.computed<Mapping<String, String>>(this, "labels")
+
+/// Name of the Location.
+hidden fixed location: tf.Computed<String> = tf.computed<String>(this, "location")
+
+/// Name of the Storage Box.
+name: tf.Input<String>?
+
+/// FQDN of the Storage Box.
+hidden fixed server: tf.Computed<String> = tf.computed<String>(this, "server")
+
+/// Details of the active snapshot plan.
+hidden fixed snapshot_plan: tf.Computed<SnapshotPlan?> =
+  tf.computed<SnapshotPlan?>(this, "snapshot_plan")
+
+/// Name of the Storage Box Type.
+hidden fixed storage_box_type: tf.Computed<String> = tf.computed<String>(this, "storage_box_type")
+
+/// Host system of the Storage Box.
+hidden fixed system: tf.Computed<String> = tf.computed<String>(this, "system")
+
+/// Primary username of the Storage Box.
+hidden fixed username: tf.Computed<String> = tf.computed<String>(this, "username")
+
+/// Filter results using a [Label Selector](https://docs.hetzner.cloud/reference/hetzner#label-selector).
+with_selector: tf.Input<String>?
+
+class AccessSettings extends Referenceable {
+  /// Whether access from outside the Hetzner network is allowed.
+  reachable_externally: Boolean
+
+  /// Whether the Samba subsystem is enabled.
+  samba_enabled: Boolean
+
+  /// Whether the SSH subsystem is enabled.
+  ssh_enabled: Boolean
+
+  /// Whether the WebDAV subsystem is enabled.
+  webdav_enabled: Boolean
+
+  /// Whether the ZFS snapshot folder is visible.
+  zfs_enabled: Boolean
+}
+
+class SnapshotPlan extends Referenceable {
+  /// Day of the month when the Snapshot Plan is executed. Null means every day.
+  day_of_month: Number
+
+  /// Day of the week when the Snapshot Plan is executed. Starts at 0 for Sunday til 6 for Saturday. Note that this differs from the API, which uses 1 (Monday) through 7 (Sunday). Null means every day.
+  day_of_week: Number
+
+  /// Hour when the Snapshot Plan is executed (UTC).
+  hour: Number
+
+  /// Maximum amount of Snapshots that will be created by this Snapshot Plan. Older Snapshots will be deleted.
+  max_snapshots: Number
+
+  /// Minute when the Snapshot Plan is executed (UTC).
+  minute: Number
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_storage_box"

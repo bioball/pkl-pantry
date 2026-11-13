@@ -1,0 +1,173 @@
+module providers.Resources
+
+import "@tf/tf.pkl"
+
+import "hetznercloud/hcloud/resources/Certificate.pkl"
+import "hetznercloud/hcloud/resources/Firewall.pkl"
+import "hetznercloud/hcloud/resources/FirewallAttachment.pkl"
+import "hetznercloud/hcloud/resources/FloatingIp.pkl"
+import "hetznercloud/hcloud/resources/FloatingIpAssignment.pkl"
+import "hetznercloud/hcloud/resources/LoadBalancer.pkl"
+import "hetznercloud/hcloud/resources/LoadBalancerNetwork.pkl"
+import "hetznercloud/hcloud/resources/LoadBalancerService.pkl"
+import "hetznercloud/hcloud/resources/LoadBalancerTarget.pkl"
+import "hetznercloud/hcloud/resources/ManagedCertificate.pkl"
+import "hetznercloud/hcloud/resources/Network.pkl"
+import "hetznercloud/hcloud/resources/NetworkRoute.pkl"
+import "hetznercloud/hcloud/resources/NetworkSubnet.pkl"
+import "hetznercloud/hcloud/resources/PlacementGroup.pkl"
+import "hetznercloud/hcloud/resources/PrimaryIp.pkl"
+import "hetznercloud/hcloud/resources/Rdns.pkl"
+import "hetznercloud/hcloud/resources/Server.pkl"
+import "hetznercloud/hcloud/resources/ServerNetwork.pkl"
+import "hetznercloud/hcloud/resources/Snapshot.pkl"
+import "hetznercloud/hcloud/resources/SshKey.pkl"
+import "hetznercloud/hcloud/resources/StorageBox.pkl"
+import "hetznercloud/hcloud/resources/StorageBoxSnapshot.pkl"
+import "hetznercloud/hcloud/resources/StorageBoxSubaccount.pkl"
+import "hetznercloud/hcloud/resources/UploadedCertificate.pkl"
+import "hetznercloud/hcloud/resources/Volume.pkl"
+import "hetznercloud/hcloud/resources/VolumeAttachment.pkl"
+import "hetznercloud/hcloud/resources/Zone.pkl"
+import "hetznercloud/hcloud/resources/ZoneRecord.pkl"
+import "hetznercloud/hcloud/resources/ZoneRrset.pkl"
+
+hcloud_certificate: Mapping<tf.Identifier, Certificate> = tf.resourceMapping<Certificate>()
+
+hcloud_firewall: Mapping<tf.Identifier, Firewall> = tf.resourceMapping<Firewall>()
+
+hcloud_firewall_attachment: Mapping<tf.Identifier, FirewallAttachment> =
+  tf.resourceMapping<FirewallAttachment>()
+
+hcloud_floating_ip: Mapping<tf.Identifier, FloatingIp> = tf.resourceMapping<FloatingIp>()
+
+hcloud_floating_ip_assignment: Mapping<tf.Identifier, FloatingIpAssignment> =
+  tf.resourceMapping<FloatingIpAssignment>()
+
+hcloud_load_balancer: Mapping<tf.Identifier, LoadBalancer> = tf.resourceMapping<LoadBalancer>()
+
+/// Manage the attachment of a Load Balancer in a Network in the Hetzner Cloud.
+hcloud_load_balancer_network: Mapping<tf.Identifier, LoadBalancerNetwork> =
+  tf.resourceMapping<LoadBalancerNetwork>()
+
+hcloud_load_balancer_service: Mapping<tf.Identifier, LoadBalancerService> =
+  tf.resourceMapping<LoadBalancerService>()
+
+hcloud_load_balancer_target: Mapping<tf.Identifier, LoadBalancerTarget> =
+  tf.resourceMapping<LoadBalancerTarget>()
+
+hcloud_managed_certificate: Mapping<tf.Identifier, ManagedCertificate> =
+  tf.resourceMapping<ManagedCertificate>()
+
+hcloud_network: Mapping<tf.Identifier, Network> = tf.resourceMapping<Network>()
+
+hcloud_network_route: Mapping<tf.Identifier, NetworkRoute> = tf.resourceMapping<NetworkRoute>()
+
+hcloud_network_subnet: Mapping<tf.Identifier, NetworkSubnet> = tf.resourceMapping<NetworkSubnet>()
+
+hcloud_placement_group: Mapping<tf.Identifier, PlacementGroup> =
+  tf.resourceMapping<PlacementGroup>()
+
+/// Provides a Hetzner Cloud Primary IP resource.
+///
+/// See the [Primary IP API documentation](https://docs.hetzner.cloud/reference/cloud#tag/primary-ips) for more details.
+///
+/// ## Deprecations
+///
+/// ### `datacenter` attribute
+///
+/// The `datacenter` attribute is marked for removal since `v1.67.0`, you must use the `location` attribute instead.
+///
+/// See our [deprecation](https://docs.hetzner.cloud/changelog#2025-12-16-phasing-out-datacenters) and
+/// [removal](https://docs.hetzner.cloud/changelog#2026-07-01-removing-datacenters) changelog for more details.
+hcloud_primary_ip: Mapping<tf.Identifier, PrimaryIp> = tf.resourceMapping<PrimaryIp>()
+
+///
+/// Provides Hetzner Cloud reverse DNS (rDNS) entries for Servers, Primary IPs, Floating IPs or Load Balancers.
+hcloud_rdns: Mapping<tf.Identifier, Rdns> = tf.resourceMapping<Rdns>()
+
+hcloud_server: Mapping<tf.Identifier, Server> = tf.resourceMapping<Server>()
+
+/// Manage the attachment of a Server in a Network in the Hetzner Cloud.
+hcloud_server_network: Mapping<tf.Identifier, ServerNetwork> = tf.resourceMapping<ServerNetwork>()
+
+hcloud_snapshot: Mapping<tf.Identifier, Snapshot> = tf.resourceMapping<Snapshot>()
+
+///
+/// Provides a Hetzner Cloud SSH Key resource to manage SSH Keys for server access.
+hcloud_ssh_key: Mapping<tf.Identifier, SshKey> = tf.resourceMapping<SshKey>()
+
+///
+/// Provides a Hetzner Storage Box resource.
+///
+/// See the [Storage Box API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-boxes) for more details.
+hcloud_storage_box: Mapping<tf.Identifier, StorageBox> = tf.resourceMapping<StorageBox>()
+
+///
+/// Provides a Hetzner Storage Box Snapshot resource.
+///
+/// See the [Storage Box Snapshots API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-box-snapshots) for more details.
+hcloud_storage_box_snapshot: Mapping<tf.Identifier, StorageBoxSnapshot> =
+  tf.resourceMapping<StorageBoxSnapshot>()
+
+///
+/// Provides a Hetzner Storage Box Subaccount resource.
+///
+/// See the [Storage Box Subaccounts API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-box-subaccounts) for more details.
+hcloud_storage_box_subaccount: Mapping<tf.Identifier, StorageBoxSubaccount> =
+  tf.resourceMapping<StorageBoxSubaccount>()
+
+hcloud_uploaded_certificate: Mapping<tf.Identifier, UploadedCertificate> =
+  tf.resourceMapping<UploadedCertificate>()
+
+hcloud_volume: Mapping<tf.Identifier, Volume> = tf.resourceMapping<Volume>()
+
+hcloud_volume_attachment: Mapping<tf.Identifier, VolumeAttachment> =
+  tf.resourceMapping<VolumeAttachment>()
+
+///
+/// Provides a Hetzner Cloud Zone resource.
+///
+/// This can be used to create, modify, and delete Zones.
+///
+/// For Internationalized domain names (IDN), see the `provider::hcloud::idna` function.
+///
+/// See the [Zones API documentation](https://docs.hetzner.cloud/reference/cloud#zones) for more details.
+hcloud_zone: Mapping<tf.Identifier, Zone> = tf.resourceMapping<Zone>()
+
+/// Provides a Hetzner Cloud Zone Record resource.
+///
+/// This can be used to create, modify, and delete Zone Records.
+///
+/// Managing the TTL, labels and protection level for the Zone Record Set that the Record belongs to is not possible.
+///
+/// Importing this resource is only supported [using an identity](https://developer.hashicorp.com/terraform/plugin/framework/resources/identity#importing-by-identity).
+///
+/// See the [Zone RRSets API documentation](https://docs.hetzner.cloud/reference/cloud#zone-rrsets) for more details.
+///
+/// !> This resource must only be used, when records cannot be managed with a `hcloud_zone_rrset` resource.
+hcloud_zone_record: Mapping<tf.Identifier, ZoneRecord> = tf.resourceMapping<ZoneRecord>()
+
+/// Provides a Hetzner Cloud Zone Resource Record Set (RRSet) resource.
+///
+/// This can be used to create, modify, and delete Zone RRSets.
+///
+/// See the [Zone RRSets API documentation](https://docs.hetzner.cloud/reference/cloud#zone-rrsets) for more details.
+///
+/// **RRSets of type TXT:**
+///
+/// The format of TXT records must consist of one or many quoted strings of 255 characters.
+///
+/// A helper function to format TXT record is available at `provider::hcloud::txt_record`.
+/// See the examples for more details.
+///
+/// **RRSets of type SOA:**
+///
+/// SOA records are created or deleted by the Hetzner Cloud API when creating or deleting
+/// the parent Zone, therefor this Terraform resource will:
+///
+/// - import the RRSet in the state, instead of creating it.
+/// - remove the RRSet from the state, instead of deleting it.
+/// - set the SOA record SERIAL value to 0 before saving it to the state, as this value is automatically
+///   incremented by the API and would cause issues otherwise.
+hcloud_zone_rrset: Mapping<tf.Identifier, ZoneRrset> = tf.resourceMapping<ZoneRrset>()

@@ -1,0 +1,51 @@
+/// Provides a list of Hetzner Storage Box Snapshots.
+///
+/// See the [Storage Box Snapshots API documentation](https://docs.hetzner.cloud/reference/hetzner#storage-box-snapshots) for more details.
+module providers.hetznercloud.hcloud.data.StorageBoxSnapshots
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+hidden fixed snapshots: tf.Computed<Listing<Snapshots>> =
+  tf.computed<Listing<Snapshots>>(this, "snapshots")
+
+/// ID of the Storage Box.
+storage_box_id: tf.Input<Number>
+
+/// Filter results using a [Label Selector](https://docs.hetzner.cloud/reference/cloud#label-selector).
+with_selector: tf.Input<String>?
+
+class Snapshots extends Referenceable {
+  /// Description of the Storage Box Snapshot.
+  description: String
+
+  /// Whether the Storage Box Snapshot was created automatically.
+  is_automatic: Boolean
+
+  /// User-defined [labels](https://docs.hetzner.cloud/reference/cloud#labels) (key-value pairs) for the resource.
+  labels: Mapping<String, String>
+
+  /// Name of the Storage Box Snapshot.
+  name: String
+
+  /// Statistics of the Storage Box Snapshot.
+  stats: Stats?
+
+  /// ID of the Storage Box.
+  storage_box_id: Number
+}
+
+class Stats extends Referenceable {
+  /// Current storage requirements of the Snapshot in bytes.
+  size: Number
+
+  /// Size of the compressed file system contained in the Snapshot in bytes.
+  size_filesystem: Number
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_storage_box_snapshots"

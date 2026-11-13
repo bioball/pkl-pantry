@@ -1,0 +1,45 @@
+/// Provides a list of Hetzner Cloud Network Members.
+///
+/// See the [Networks API documentation](https://docs.hetzner.cloud/reference/cloud#tag/networks) for more details.
+module providers.hetznercloud.hcloud.data.NetworkMembers
+
+extends "@tf/DataSource.pkl"
+
+import "@tf/Referenceable.pkl"
+import "@tf/tf.pkl"
+
+hidden fixed members: tf.Computed<Listing<Members>> = tf.computed<Listing<Members>>(this, "members")
+
+/// ID the Network to list the members of.
+network_id: tf.Input<Number>
+
+/// Filter members by status. May be used multiple times.
+with_status: tf.InputListing<String>?
+
+/// Filter members by subnet. May be used multiple times.
+with_subnet: tf.InputListing<String>?
+
+/// Filter members by type. May be used multiple times.
+with_type: tf.InputListing<String>?
+
+class Members extends Referenceable {
+  /// Additional IP addresses of the Resource within the Network.
+  alias_ips: Listing<String>(isDistinct)
+
+  /// IP address of the Resource within the Network.
+  ip: String
+
+  /// Status of the Resource within the Network.
+  status: String
+
+  /// IP range of the subnet the Resource is attached to.
+  subnet: String
+
+  /// Type of the Resource attached to the Network.
+  type: String
+}
+
+/// The string that identifies the kind of this value.
+///
+/// This is an internal field.
+hidden const $kind: "hcloud_network_members"
