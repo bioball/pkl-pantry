@@ -10,6 +10,30 @@ There's two projects here:
 
 * symbol-libraries - the Pkl port of the example from https://opentofu.org/blog/2026/09/17/symbol-libraries-introduction/.
 
+## Why Pkl?
+
+HCL is a mostly static language that trades predicability for expressivity.
+This has been a pain point for users; for example, it's hard to DRY up code because HCL itself doesn't have imports.
+
+To drive Terraform/OpenTofu, there have been many tools that have been created focused on adding expressivity to TF programs, but they generally are still defined as static HCL that gets executed by an external engine (e.g. symbol libraries, Terragrunt).
+
+Both of these approaches are more or less inventing a new programming language bound by the syntax of HCL.
+This tends to lead to code that is awkward to write and understand.
+
+On the other hand, Pkl is a blend of a configuration language _and_ a programming language.
+The Pkl evaluator executes the logic defined in a program, and produces a result.
+Any logic is intrinsic to Pkl itself, which is understood by the Pkl evaluator and its suite of tooling (IDE, linting, formatting, tests, and more).
+
+The Pkl language is:
+
+* Type-safe: there are type annotations, classes, typealiases, and a powerful type system.
+* Sandboxed: users can control Pkl programs are allowed to do during the course of evaluation.
+* Short-lived: a program executes to completion and produces a result.
+* Hermetic: the same inputs always produce the same outputs.
+* Expressive: control flow statements like `if/else` expressions, for loops, module imports, user-defined types, and more.
+* Metaprogramming oriented: You can write code that generates Pkl from something else, or generate something else from Pkl (think HCL → Pkl generator, Pkl → HCL generator).
+* Full-featured: the standard library contains support for testing, benchmarking, packaging, dependencies, and more.
+
 ## Requirements
 
 * `pkl` CLI
@@ -95,3 +119,20 @@ Right now, this just produces `.tf.json` style JSON that OpenTofu/Terraform acce
 However, Pkl also has many other ways of driving evaluation.
 Notably, you can evaluate this stuff into structs and interfaces directly in Go via the [pkl-go](https://github.com/apple/pkl-go) library.
 This includes references, which gives you the pathing data for any computed value.
+
+## Future directions
+
+These are not in this demo but are possible future directions:
+
+* HCL → Pkl migrator
+
+  A tool that parses HCL and turns it into the semantic equivalent in Pkl.
+
+* Terraform/Tofu first-party integration
+
+  Baking Pkl into `tofu init`, and generating Pkl schemas automatically.
+
+* Control flow / operator support with computed values
+
+  It doesn't make sense to use basic control flow with computed values (because Pkl doesn't know what the underlying value are).
+  Some possible solutions are either via multi-shot evaluation, or encoding logic in an in-language "DSL".

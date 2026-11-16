@@ -23,7 +23,7 @@ import "tf.pkl"
 /// Customize lifecycle behavior of a resource.
 ///
 /// See [documentation](https://www.terraform.io/language/meta-arguments/lifecycle).
-lifecycle: tf.Lifecycle?
+lifecycle: Lifecycle?
 
 /// The `for_each` meta-argument accepts a map or a set of strings and creates an instance for each item in that map or set.
 ///
@@ -44,3 +44,18 @@ depends_on: Listing<String>(isDistinct)
 hidden const $kind: String
 
 hidden $path = new { $kind }
+
+class Lifecycle {
+  /// New replacement object is created first, and the prior object is destroyed after the replacement is created.
+  create_before_destroy: Boolean
+
+  /// Measure of safety against the accidental replacement of resources.
+  prevent_destroy: Boolean
+
+  /// Specifies resource attributes that Terraform/OpenTofu should ignore when planning updates.
+  ///
+  /// See [documentation](https://developer.hashicorp.com/terraform/language/syntax/json#resource-and-data-blocks)
+  ignore_changes: IgnoreChanges
+}
+
+typealias IgnoreChanges = *Listing<String>(isDistinct) | "all"
